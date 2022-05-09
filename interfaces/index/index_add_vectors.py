@@ -31,7 +31,7 @@ class InsertResponse(Response):
 @app.post('/v1/index/add_vectors',
           name="v1 index add vectors",
           response_model=InsertResponse,
-          description="添加向量到索引 (内存；需要手动调用 flush 接口才会将 索引数据保存到磁盘)")
+          description="添加向量到索引 (内存；需要手动调用 save 接口才会将 索引数据保存到磁盘)")
 def index_add_vectors(_input: VectorInput):
     log_id = logs.uid()
     logs.add(log_id, f'POST {logs.fn_name()}', f'payload: {_input}')

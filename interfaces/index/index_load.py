@@ -39,4 +39,18 @@ def index_load(
 
 if __name__ == '__main__':
     # 测试代码
+    import numpy as np
+    from interfaces.index.index_search import index_search, SearchInput
+
     index_load('test', '')
+
+    ret = index_search(SearchInput(
+        index_name='test',
+        vectors=list(map(lambda l: list(map(float, l)), np.eye(3, 384))),
+        top_k=3,
+    ))
+
+    for v_list in ret['data']:
+        print('\n--------------------------------------')
+        for v in v_list:
+            print(v)
