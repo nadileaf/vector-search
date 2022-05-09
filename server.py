@@ -16,7 +16,13 @@ logs.PROCESS = 'server'
 
 from config.env import ENV, DEV
 from interfaces.base import app
+from interfaces.index import index_add_vectors
 from interfaces.index import index_create
+from interfaces.index import index_load
+from interfaces.index import index_release
+from interfaces.index import index_save
+from interfaces.index import index_search
+from interfaces.index import index_train
 
 if __name__ == '__main__':
     app.add_middleware(
