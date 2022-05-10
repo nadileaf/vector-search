@@ -43,10 +43,15 @@ def add(_id, function, message, pre_sep='', empty_line=0, _level=LEVEL_MSG, show
         print(string[:-1])
         sys.stdout.flush()
 
+    return
+
     # get correct file path
     dir_path = utils.get_relative_dir(MODULE, PROCESS, root=LOG_DIR)
 
-    file_names = list(filter(lambda x: not x.startswith('.'), os.listdir(dir_path)))
+    try:
+        file_names = list(filter(lambda x: not x.startswith('.'), os.listdir(dir_path)))
+    except:
+        file_names = []
     file_nos = list(map(lambda x: int(x.split('.')[0]), file_names))
     file_nos.sort(reverse=True)
 

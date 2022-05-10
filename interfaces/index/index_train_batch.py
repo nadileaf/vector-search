@@ -57,9 +57,8 @@ def index_train_batch(_input: VectorInput):
                 'code': 0, 'msg': f'index "{index_name}({partition})" 不存在，请先创建索引'})
 
         vectors = np.array(d_key_2_vectors[key]).astype(np.float32)
-        o_faiss.train(index_name, vectors, partition, log_id)
-
         del d_key_2_vectors[key]
+        o_faiss.train(index_name, vectors, partition, log_id)
 
     return logs.ret(log_id, logs.fn_name(), 'POST', {'code': 1})
 
