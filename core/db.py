@@ -43,7 +43,7 @@ class Faiss:
     def train(self, index_name: str, vectors: np.ndarray, partition: str = '', log_id: Union[str, int] = 'Faiss'):
         index = self.index(index_name, partition)
         if index is not None:
-            logs.add(log_id, 'train', f'start training index "{index_name}({partition})"; dataset len :{len(vectors)}')
+            logs.add(log_id, 'train', f'start training index "{index_name}({partition})" (len: {len(vectors)})')
             s_time = time.time()
             index.train(vectors)
             logs.add(log_id, 'train', f'finish training index "{index_name}({partition})" '
