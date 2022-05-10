@@ -36,7 +36,7 @@ def index_create(
         o_faiss.indices[index_name] = {}
     if partition in o_faiss.indices[index_name]:
         return logs.ret(log_id, logs.fn_name(), 'GET', {
-            'code': 0, 'msg': f'index_name "{index_name}({partition})" 已存在，请先删除索引'})
+            'code': 1, 'msg': f'index_name "{index_name}({partition})" 已存在，请先删除索引'})
 
     o_faiss.indices[index_name][partition] = get_index(count, dim_size)
 

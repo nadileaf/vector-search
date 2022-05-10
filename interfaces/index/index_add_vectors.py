@@ -25,7 +25,7 @@ class Result(BaseModel):
 
 
 class InsertResponse(Response):
-    data: Result = Field(description='插入数据的结果')
+    data: Optional[Result] = Field(description='插入数据的结果')
 
 
 @app.post('/v1/index/add_vectors',

@@ -112,7 +112,9 @@ class Faiss:
             s_time = time.time()
 
             if index_name not in self.mv_indices:
-                self.mv_indices[index_name] = {partition: None}
+                self.mv_indices[index_name] = {}
+            if partition not in self.mv_indices[index_name]:
+                self.mv_indices[index_name][partition] = None
             mv_index = self.mv_indices[index_name][partition]
 
             if not mv_index:
