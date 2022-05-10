@@ -25,7 +25,8 @@ class Result(BaseModel):
           description="训练索引")
 def index_train(_input: VectorInput):
     log_id = logs.uid()
-    logs.add(log_id, f'POST {logs.fn_name()}', f'payload: {_input}')
+    log_params = {k: v for k, v in _input.__dict__.items() if k != 'vectors'}
+    logs.add(log_id, f'POST {logs.fn_name()}', f'payload: {log_params}')
 
     index_name = _input.index_name
     vectors = _input.vectors

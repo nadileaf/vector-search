@@ -1,6 +1,6 @@
 import numpy as np
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any, Union
+from typing import Optional, List, Any
 from interfaces.base import app
 from interfaces.definitions.common import Response
 from lib import logs
@@ -34,7 +34,8 @@ class InsertResponse(Response):
           description="添加向量到索引 (内存；需要手动调用 save 接口才会将 索引数据保存到磁盘)")
 def index_add_vectors(_input: VectorInput):
     log_id = logs.uid()
-    logs.add(log_id, f'POST {logs.fn_name()}', f'payload: {_input}')
+    log_params = {k: v for k, v in _input.__dict__.items() if k != 'vectors'}
+    logs.add(log_id, f'POST {logs.fn_name()}', f'payload: {log_params}')
 
     index_name = _input.index_name
     vectors = _input.vectors
