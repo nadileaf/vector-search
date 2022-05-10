@@ -22,7 +22,7 @@ def index_create(
     count = int(count) if isinstance(count, int) else count.default
 
     log_id = logs.uid()
-    params = {'index_name': index_name, 'partition': partition, 'count': count}
+    params = {'index_name': index_name, 'partition': partition, 'count': count, 'dim_size': dim_size}
     logs.add(log_id, f'GET {logs.fn_name()}', f'params: {params}')
 
     if not index_name:

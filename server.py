@@ -23,6 +23,7 @@ from interfaces.index import index_release
 from interfaces.index import index_save
 from interfaces.index import index_search
 from interfaces.index import index_train
+from interfaces.index import index_exist
 
 if __name__ == '__main__':
     app.add_middleware(
