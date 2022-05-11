@@ -1,9 +1,9 @@
 import numpy as np
 from pydantic import BaseModel, Field
+from fastapi import Header
 from typing import Optional, List, Any
-from interfaces.base import app
+from interfaces.base import app, log
 from interfaces.definitions.common import Response
-from lib import logs
 from core.db import o_faiss
 
 
@@ -32,11 +32,9 @@ class InsertResponse(Response):
           name="v1 index add vectors",
           response_model=InsertResponse,
           description="添加向量到索引 (内存；需要手动调用 save 接口才会将 索引数据保存到磁盘)")
-def index_add_vectors(_input: VectorInput):
-    log_id = logs.uid()
-    log_params = {k: v for k, v in _input.__dict__.items() if k != 'vectors'}
-    logs.add(log_id, f'POST {logs.fn_name()}', f'payload: {log_params}')
-
+@log
+def index_add_vectors(_input: VectorInput, tenant: Optional[str] = Header('_test'), log_id: int = None):
+    tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = _input.index_name
     vectors = _input.vectors
     texts = _input.texts
@@ -46,26 +44,22 @@ def index_add_vectors(_input: VectorInput):
     add_default_partition = _input.add_default_partition
 
     if not index_name:
-        return logs.ret(log_id, logs.fn_name(), 'POST', {'code': 0, 'msg': f'index_name 不能为空'})
+        return {'code': 0, 'msg': f'index_name 不能为空'}
 
     if not vectors:
-        return logs.ret(log_id, logs.fn_name(), 'POST', {'code': 0, 'msg': f'vectors 不能为空'})
+        return {'code': 0, 'msg': f'vectors 不能为空'}
 
-    index = o_faiss.index(index_name, partition)
+    index = o_faiss.index(tenant, index_name, partition)
     if index is None:
-        return logs.ret(log_id, logs.fn_name(), 'POST', {
-            'code': 0, 'msg': f'index "{index_name}({partition})" 不存在，请先创建索引'})
+        return {'code': 0, 'msg': f'index "{index_name}({partition})" (tenant: "{tenant}") 不存在，请先创建索引'}
 
     if not index.is_trained:
-        return logs.ret(log_id, logs.fn_name(), 'POST', {
-            'code': 0, 'msg': f'index "{index_name}({partition})" 还没 train，需要先调用 train 接口'}, logs.LEVEL_ERROR)
+        return {'code': 0, 'msg': f'index "{index_name}({partition})" (tenant: {tenant}) 还没 train，需要先调用 train 接口'}
 
-    try:
-        vectors = np.array(vectors).astype(np.float32)
-        ret = o_faiss.add(index_name, vectors, texts, info, partition, filter_exist, add_default=add_default_partition)
-        return logs.ret(log_id, logs.fn_name(), 'POST', {'code': 1, 'data': ret})
-    except:
-        return logs.ret_error(log_id, logs.fn_name(), 'POST', {'code': 0, 'msg': f'插入数据到 index error'})
+    vectors = np.array(vectors).astype(np.float32)
+    ret = o_faiss.add(tenant, index_name, vectors, texts, info, partition, filter_exist,
+                      add_default=add_default_partition, log_id=log_id)
+    return {'code': 1, 'data': ret}
 
 
 if __name__ == '__main__':

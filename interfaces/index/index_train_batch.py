@@ -1,9 +1,9 @@
 import numpy as np
 from pydantic import BaseModel, Field
+from fastapi import Header
 from typing import Optional, List
-from interfaces.base import app
+from interfaces.base import app, log
 from interfaces.definitions.common import Response
-from lib import logs
 from core.db import o_faiss
 
 # 用于缓存数据
@@ -27,40 +27,47 @@ class Result(BaseModel):
           name="v1 index train batch",
           response_model=Response,
           description="训练索引；避免数据过大，没法经过网络请求传输")
-def index_train_batch(_input: VectorInput):
-    log_id = logs.uid()
-    log_params = {k: v for k, v in _input.__dict__.items() if k != 'vectors'}
-    logs.add(log_id, f'POST {logs.fn_name()}', f'payload: {log_params}')
-
+@log
+def index_train_batch(_input: VectorInput, tenant: Optional[str] = Header('_test'), log_id: int = None):
+    tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = _input.index_name
     vectors = _input.vectors
     partition = _input.partition
     start_train = _input.start_train
 
     if not index_name:
-        return logs.ret(log_id, logs.fn_name(), 'GET', {'code': 0, 'msg': f'index_name 不能为空'})
+        return {'code': 0, 'msg': f'index_name 不能为空'}
 
     if not start_train and not vectors:
-        return logs.ret(log_id, logs.fn_name(), 'GET', {'code': 0, 'msg': f'vectors 不能为空'})
+        return {'code': 0, 'msg': f'vectors 不能为空'}
 
-    key = f'{index_name}____{partition}'
+    key = f'{tenant}____{index_name}____{partition}'
     if key not in d_key_2_vectors:
         d_key_2_vectors[key] = []
 
     if not start_train:
-        d_key_2_vectors[key].extend(vectors)
+        total_len = 0
+        for key, v in d_key_2_vectors.items():
+            total_len += np.sum(list(map(lambda x: len(x), v)))
+
+        # 控制内存泄露问题
+        if total_len + len(vectors) >= 1000000:
+            return {'code': 0, 'msg': f'当前缓存数据量过大，请稍后再使用'}
+
+        d_key_2_vectors[key].append(vectors)
 
     else:
-        index = o_faiss.index(index_name, partition)
+        index = o_faiss.index(tenant, index_name, partition)
         if index is None:
-            return logs.ret(log_id, logs.fn_name(), 'POST', {
-                'code': 0, 'msg': f'index "{index_name}({partition})" 不存在，请先创建索引'})
+            return {'code': 0, 'msg': f'index "{index_name}({partition})" (tenant: {tenant}) 不存在，请先创建索引'}
+        if not d_key_2_vectors[key]:
+            return {'code': 0, 'msg': f'index "{index_name}({partition})" (tenant: {tenant}) 没有数据'}
 
-        vectors = np.array(d_key_2_vectors[key]).astype(np.float32)
+        vectors = np.vstack(d_key_2_vectors[key]).astype(np.float32)
         del d_key_2_vectors[key]
-        o_faiss.train(index_name, vectors, partition, log_id)
+        o_faiss.train(tenant, index_name, vectors, partition, log_id)
 
-    return logs.ret(log_id, logs.fn_name(), 'POST', {'code': 1})
+    return {'code': 1}
 
 
 if __name__ == '__main__':
@@ -76,7 +83,7 @@ if __name__ == '__main__':
 
     index_train_batch(VectorInput(
         index_name='test',
-        vectors=list(map(lambda l: list(map(float, l)), np.random.rand(20, 384))),
+        vectors=list(map(lambda l: list(map(float, l)), np.random.rand(50, 384))),
         start_train=False,
     ))
 
