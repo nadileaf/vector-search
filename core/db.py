@@ -559,4 +559,21 @@ def filter_duplicate(index_name: str, ids: List[int], partition: str = '') -> Li
     return [i for i, ret in enumerate(rets) if not ret]
 
 
+def get_metric(metric_type: int):
+    if metric_type == 0:
+        return 'inner_product'
+    elif metric_type == 1:
+        return 'L1'
+    elif metric_type == 2:
+        return 'L2'
+    elif metric_type == 3:
+        return 'L_inf'
+    elif metric_type == 4:
+        return 'Lp'
+    elif metric_type == 22:
+        return 'JensenShannon'
+    else:
+        return ''
+
+
 o_faiss = Faiss()

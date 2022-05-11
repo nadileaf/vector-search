@@ -24,6 +24,7 @@ from interfaces.index import index_save
 from interfaces.index import index_search
 from interfaces.index import index_train
 from interfaces.index import index_exist
+from interfaces.index import index_list
 from interfaces.index import index_train_batch
 
 if __name__ == '__main__':
