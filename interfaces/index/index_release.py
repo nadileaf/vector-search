@@ -16,6 +16,7 @@ def index_release(
         tenant: Optional[str] = Header('_test'),
         log_id: int = None,
 ):
+    tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = index_name if isinstance(index_name, str) else index_name.default
     partition = partition if isinstance(partition, str) else partition.default
 
@@ -25,9 +26,9 @@ def index_release(
     _ret = 1
     if index_name == '*':
         for _index_name in o_faiss.indices.keys():
-            o_faiss.release(_index_name, partition, log_id=log_id)
+            o_faiss.release(tenant, _index_name, partition, log_id=log_id)
     else:
-        _ret = o_faiss.release(index_name, partition, log_id)
+        _ret = o_faiss.release(tenant, index_name, partition, log_id)
 
     msg = 'Successfully' if _ret else 'Fail'
     msg = f'{msg} releasing index "{index_name}({partition})" (tenant: "{tenant}")'

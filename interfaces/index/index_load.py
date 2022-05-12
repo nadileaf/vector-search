@@ -16,9 +16,9 @@ def index_load(
         tenant: Optional[str] = Header('_test'),
         log_id: int = None,
 ):
+    tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = index_name if isinstance(index_name, str) else index_name.default
     partition = partition if isinstance(partition, str) else partition.default
-    tenant = tenant if isinstance(tenant, str) else tenant.default
 
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}

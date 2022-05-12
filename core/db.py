@@ -339,7 +339,7 @@ class Faiss:
         log_name = f'"{index_name}({partition})" (tenant: {tenant})'
 
         # release index 前，先保存索引
-        ret = self.save_one(tenant, index_name, partition)
+        ret = self.save_one(tenant, index_name, partition, log_id)
         if not ret:
             logs.add(log_id, 'release', f'Fail in saving {log_name} before releasing',
                      _level=logs.LEVEL_ERROR)

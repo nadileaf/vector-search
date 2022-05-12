@@ -28,6 +28,8 @@ def index_list(tenant: Optional[str] = Header('_test'), log_id: int = None):
         indices[index_name] = {}
         for partition, _index in partitions.items():
             indices[index_name][partition] = {
+                'index_name': index_name,
+                'partition': partition,
                 'storage_type': 'in_memory',
                 'dim_size': _index.d,
                 'n_total': _index.ntotal,
@@ -52,7 +54,11 @@ def index_list(tenant: Optional[str] = Header('_test'), log_id: int = None):
 
                 partition = file_name[:-len('.index')]
                 if partition not in indices[index_name]:
-                    indices[index_name][partition] = {'storage_type': 'in_disk'}
+                    indices[index_name][partition] = {
+                        'index_name': index_name,
+                        'partition': partition,
+                        'storage_type': 'in_disk'
+                    }
 
     return {'code': 1, 'data': indices}
 
