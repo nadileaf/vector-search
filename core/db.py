@@ -385,6 +385,12 @@ class Faiss:
         partitions = partitions if partitions else [''] * len(index_names)
         for i, index_name in enumerate(index_names):
             partition = partitions[i] if partitions[i] else self.DEFAULT
+
+            # 获取 index
+            index = self.index(tenant, index_name, partition)
+            if index is None:
+                continue
+
             table_name = get_table_name(tenant, index_name, partition)
 
             if partition == self.DEFAULT and tenant in self.mv_indices and index_name in self.mv_indices[tenant]:
@@ -408,8 +414,6 @@ class Faiss:
 
                 logs.add(log_id, logs.fn_name(), f'finish mv sim (use time: {time.time() - s_time:.4f}s)')
 
-            # 获取 index
-            index = self.index(tenant, index_name, partition)
             index.nprobe = nprobe
 
             s_time = time.time()

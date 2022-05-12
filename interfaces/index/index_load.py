@@ -43,7 +43,7 @@ if __name__ == '__main__':
     index_load('test', '')
 
     ret = index_search(SearchInput(
-        index_name='test',
+        index_names=['test'],
         vectors=list(map(lambda l: list(map(float, l)), np.eye(3, 384))),
         top_k=3,
     ))

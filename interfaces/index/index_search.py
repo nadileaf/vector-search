@@ -8,9 +8,9 @@ from core.db import o_faiss
 
 
 class SearchInput(BaseModel):
-    index_name: str = Field(description='索引的名称')
+    index_names: List[str] = Field(description='索引的名称')
     vectors: List[List[float]] = Field(description='向量数据; shape = (数据量，数据的维度) ')
-    partition: Optional[str] = Field('', description='索引的分区')
+    partitions: Optional[List[str]] = Field(None, description='索引的分区')
     nprobe: Optional[int] = Field(10, description='查找索引中最近的 nprobe 个中心点')
     top_k: Optional[int] = Field(20, description='返回 top_k 个结果')
 
@@ -31,24 +31,20 @@ class SearchResponse(Response):
 @log
 def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), log_id: int = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
-    index_name = _input.index_name
+    index_names = _input.index_names
     vectors = _input.vectors
-    partition = _input.partition
+    partitions = _input.partitions
     nprobe = _input.nprobe
     top_k = _input.top_k
 
-    if not index_name:
-        return {'code': 0, 'msg': f'index_name 不能为空'}
+    if not index_names:
+        return {'code': 0, 'msg': f'index_names 不能为空'}
 
     if not vectors:
         return {'code': 0, 'msg': f'vectors 不能为空'}
 
-    index = o_faiss.index(tenant, index_name, partition)
-    if index is None:
-        return {'code': 0, 'msg': f'index "{index_name}({partition})" 不存在，请先创建索引'}
-
     vectors = np.array(vectors).astype(np.float32)
-    _ret = o_faiss.search(vectors, tenant, [index_name, index_name], [partition, ''], nprobe, top_k, log_id)
+    _ret = o_faiss.search(vectors, tenant, index_names, partitions, nprobe, top_k, log_id)
     return {'code': 1, 'data': _ret}
 
 
@@ -58,15 +54,15 @@ if __name__ == '__main__':
     from interfaces.index.index_train import index_train
     from interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 
-    index_create('test8', 384, '', 1000)
+    index_create('test', 384, '', 1000)
 
     index_train(VectorInput(
-        index_name='test8',
+        index_name='test',
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
     ))
 
     index_add_vectors(VectorInput(
-        index_name='test8',
+        index_name='test',
         texts=[f'{i}' for i in range(200)],
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
         info=[{'value': i} for i in range(0, 200)],
@@ -78,7 +74,7 @@ if __name__ == '__main__':
     a = a / np.sqrt(np.sum(a ** 2, axis=1))[..., None]
     #
     # index_add_vectors(VectorInput(
-    #     index_name='test8',
+    #     index_name='test',
     #     texts=[f'{i}' for i in range(3)],
     #     vectors=list(map(lambda l: list(map(float, l)), a)),
     #     info=[{'value': i} for i in range(3)],
@@ -86,14 +82,14 @@ if __name__ == '__main__':
     # ))
 
     # index_add_vectors(VectorInput(
-    #     index_name='test8',
+    #     index_name='test',
     #     texts=[f'{i}' for i in range(400, 600)],
     #     vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
     #     info=[{'value': i} for i in range(1200, 1400)],
     # ))
 
     ret = index_search(SearchInput(
-        index_name='test8',
+        index_names=['test'],
         vectors=list(map(lambda l: list(map(float, l)), a)),
         top_k=4,
     ))
