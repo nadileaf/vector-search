@@ -58,38 +58,44 @@ if __name__ == '__main__':
     from interfaces.index.index_train import index_train
     from interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 
-    index_create('test3', 384, '', 10000)
+    index_create('test8', 384, '', 1000)
 
     index_train(VectorInput(
-        index_name='test3',
+        index_name='test8',
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
     ))
 
     index_add_vectors(VectorInput(
-        index_name='test3',
+        index_name='test8',
         texts=[f'{i}' for i in range(200)],
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
-        info=[{'value': i} for i in range(200, 400)],
+        info=[{'value': i} for i in range(0, 200)],
     ))
 
+    a = np.zeros([3, 384])
+    for i in range(len(a)):
+        a[i, :i + 1] = 1
+    a = a / np.sqrt(np.sum(a ** 2, axis=1))[..., None]
+
     index_add_vectors(VectorInput(
-        index_name='test3',
-        texts=[f'{i}' for i in range(200, 400)],
-        vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
-        info=[{'value': i} for i in range(400, 600)],
+        index_name='test8',
+        texts=[f'{i}' for i in range(3)],
+        vectors=list(map(lambda l: list(map(float, l)), a)),
+        info=[{'value': i} for i in range(3)],
+        # filter_exist=True,
     ))
 
     # index_add_vectors(VectorInput(
-    #     index_name='test',
+    #     index_name='test8',
     #     texts=[f'{i}' for i in range(400, 600)],
     #     vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
     #     info=[{'value': i} for i in range(1200, 1400)],
     # ))
 
     ret = index_search(SearchInput(
-        index_name='test3',
-        vectors=list(map(lambda l: list(map(float, l)), np.eye(3, 384))),
-        top_k=3,
+        index_name='test8',
+        vectors=list(map(lambda l: list(map(float, l)), a)),
+        top_k=4,
     ))
 
     for v_list in ret['data']:

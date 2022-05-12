@@ -120,7 +120,7 @@ def redis_drop(db_name):
         _o_redis.delete(*keys)
 
 
-def redis_del(*keys, table_name=''):
+def redis_del(keys: list, table_name=''):
     keys = list(map(lambda k: f'{table_name}____{k}', keys))
     if keys:
         _o_redis.delete(*keys)

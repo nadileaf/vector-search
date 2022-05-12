@@ -11,7 +11,7 @@ _reg_valid = re.compile(r'^[a-zA-Z0-9_\-. \u3400-\u9FFF]+$')
 @app.get('/v1/index/create',
          name="v1 index create",
          response_model=Response,
-         description="创建索引")
+         description="创建索引 (暂时只支持 metric: 内积，若需更多 metric，请联系林雨森)")
 @log
 def index_create(
         index_name: str = Query('', description='索引的名称'),

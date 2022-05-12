@@ -75,25 +75,32 @@ class Faiss:
         logs.add(log_id, 'add', f'start inserting data (len: {origin_len}) to "{log_name}" ...')
 
         # 预处理 info
-        info = info if info else [''] * len(vectors)
-        for _i, _v in enumerate(info):
-            if not isinstance(_v, dict):
-                info[_i] = {'value': _v, 'partition': partition}
-            elif 'partition' not in _v:
-                _v['partition'] = partition
+        info = process_info(info, len(vectors), partition)
 
         origin_s_time = s_time = time.time()
 
-        # 根据 index 类型 选用不同的 uid 函数
-        if index_type.startswith('Flat'):
-            id_queue = Queue()
-            for i in range(origin_len):
-                id_queue.put(index.ntotal + i)
-        else:
-            id_queue = None
+        if not filter_exist and index_type.startswith('Flat'):
+            ids = list(range(index.ntotal, index.ntotal + origin_len))
 
-        # 获取数据的 id
-        ids = get_uids(tenant, index_name, texts if texts else vectors, info, partition, id_queue)
+            table_name = get_md5_table(tenant, index_name, partition, 'Flat')
+
+            info = [''] * len(texts) if not info else info
+            md5_ids = list(map(md5, zip(texts, info)))
+
+            redis_batch_save(md5_ids, ids, table_name)
+
+        else:
+            # 根据 index 类型 选用不同的 uid 函数
+            if index_type.startswith('Flat'):
+                id_queue = Queue()
+                for i in range(origin_len):
+                    id_queue.put(index.ntotal + i)
+            else:
+                id_queue = None
+
+            # 获取数据的 id
+            ids = get_uids(tenant, index_name, texts if texts else vectors, info, partition, id_queue)
+
         filter_ids = ids
 
         logs.add(log_id, 'add', f'finish getting uids '
@@ -487,6 +494,8 @@ class Faiss:
                     continue
 
                 data = d_id_2_info[_id]
+                if not data:
+                    continue
 
                 if not avg_results:
                     avg_similarity = 1.
@@ -503,6 +512,51 @@ class Faiss:
         logs.add(log_id, 'search', f'finish searching in {log_name} '
                                    f'(use_time: {time.time() - total_s_time:.4f}s): {results}')
         return results
+
+    def delete_with_id(self, ids: List[int], tenant: str, index_name: str, partition: str = '',
+                       log_id: Union[str, int] = 'Faiss'):
+
+        logs.add(log_id, logs.fn_name(), f'Start deleting ids from "{index_name}({partition})" '
+                                         f'(len: {len(ids)}, tenant: {tenant}) ... ')
+
+        partition = partition if partition else self.DEFAULT
+        ids = list(filter(lambda x: x or x is 0, ids))
+
+        redis_del(ids, table_name=get_table_name(tenant, index_name, partition))
+
+        logs.add(log_id, logs.fn_name(), f'Finish deleting ids from "{index_name}({partition})" (tenant: {tenant})')
+
+    def delete_with_info(self,
+                         tenant: str,
+                         index_name: str,
+                         vectors: np.ndarray,
+                         texts: List[Any] = None,
+                         info: List[dict] = None,
+                         partition: str = '',
+                         log_id: Union[str, int] = 'Faiss'):
+        partition = partition if partition else self.DEFAULT
+
+        index = self.index(tenant, index_name, partition)
+        index_type = get_index_type(index)
+
+        # 预处理 info
+        info = process_info(info, len(vectors), partition)
+
+        table_name = get_md5_table(tenant, index_name, partition, 'Flat' if index_type.startswith('Flat') else 'IVF')
+        md5_ids = list(map(md5, zip(texts, info)))
+        ids = redis_batch_get(md5_ids, table_name)
+
+        self.delete_with_id(ids, tenant, index_name, partition, log_id)
+
+
+def process_info(info: List[Any], length: int, partition: str = ''):
+    info = info if info else [''] * length
+    for _i, _v in enumerate(info):
+        if not isinstance(_v, dict):
+            info[_i] = {'value': _v, 'partition': partition}
+        elif 'partition' not in _v:
+            _v['partition'] = partition
+    return info
 
 
 def process_score(score) -> float:
