@@ -64,29 +64,38 @@ def redis_batch_exist(keys: List[Union[str, int]], table_name: str = '', num_thr
     return list(map(lambda x: d_result[x], keys))
 
 
-def _redis_get_thread(_queue: Queue, table_name, d_result: dict):
+def _redis_get_thread(_queue: Queue, d_result: dict):
     while not _queue.empty():
-        k = _queue.get()
-        d_result[k] = redis_get(k, table_name)
+        k, table_name = _queue.get()
+        d_result[f'{table_name}____{k}'] = redis_get(k, table_name)
 
 
-def redis_batch_get(keys: List[Union[str, int]], table_name: str = '', num_thread=10) -> List[Any]:
+def redis_batch_get(keys: List[Union[str, int]], table_name: Union[str, List[str]] = '',
+                    return_dict=False, num_thread=10) -> Union[List[Any], dict]:
+    if isinstance(table_name, str):
+        table_name = [table_name] * len(keys)
+
+    key_tables = list(zip(keys, table_name))
+
     _queue = Queue()
-    for k in keys:
-        _queue.put(k)
+    for k, t in key_tables:
+        _queue.put([k, t])
 
-    d_result = {}
+    d_table_key_2_result = {}
 
     pool = []
     for i in range(min(num_thread, _queue.qsize())):
-        t = threading.Thread(target=_redis_get_thread, args=(_queue, table_name, d_result))
+        t = threading.Thread(target=_redis_get_thread, args=(_queue, d_table_key_2_result))
         t.start()
         pool.append(t)
 
     for t in pool:
         t.join()
 
-    return list(map(lambda x: d_result[x], keys))
+    if return_dict:
+        return d_table_key_2_result
+    else:
+        return list(map(lambda x: d_table_key_2_result[f'{x[1]}____{x[0]}'], key_tables))
 
 
 def _redis_save_thread(_queue: Queue, table_name):

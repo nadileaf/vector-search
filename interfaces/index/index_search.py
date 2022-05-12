@@ -48,7 +48,7 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
         return {'code': 0, 'msg': f'index "{index_name}({partition})" 不存在，请先创建索引'}
 
     vectors = np.array(vectors).astype(np.float32)
-    _ret = o_faiss.search(tenant, index_name, vectors, partition, nprobe, top_k, log_id)
+    _ret = o_faiss.merge_search(vectors, tenant, [index_name, index_name], [partition, ''], nprobe, top_k, log_id)
     return {'code': 1, 'data': _ret}
 
 
@@ -76,14 +76,14 @@ if __name__ == '__main__':
     for i in range(len(a)):
         a[i, :i + 1] = 1
     a = a / np.sqrt(np.sum(a ** 2, axis=1))[..., None]
-
-    index_add_vectors(VectorInput(
-        index_name='test8',
-        texts=[f'{i}' for i in range(3)],
-        vectors=list(map(lambda l: list(map(float, l)), a)),
-        info=[{'value': i} for i in range(3)],
-        # filter_exist=True,
-    ))
+    #
+    # index_add_vectors(VectorInput(
+    #     index_name='test8',
+    #     texts=[f'{i}' for i in range(3)],
+    #     vectors=list(map(lambda l: list(map(float, l)), a)),
+    #     info=[{'value': i} for i in range(3)],
+    #     # filter_exist=True,
+    # ))
 
     # index_add_vectors(VectorInput(
     #     index_name='test8',
