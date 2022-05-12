@@ -46,7 +46,8 @@ def log(func):
         s_time = time.time()
 
         # 执行 函数本身
-        _ret = func(*args, **kwargs, log_id=log_id)
+        kwargs['log_id'] = log_id
+        _ret = func(*args, **kwargs)
 
         e_time = time.time()
 
