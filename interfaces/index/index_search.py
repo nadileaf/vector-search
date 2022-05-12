@@ -48,7 +48,7 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
         return {'code': 0, 'msg': f'index "{index_name}({partition})" 不存在，请先创建索引'}
 
     vectors = np.array(vectors).astype(np.float32)
-    _ret = o_faiss.merge_search(vectors, tenant, [index_name, index_name], [partition, ''], nprobe, top_k, log_id)
+    _ret = o_faiss.search(vectors, tenant, [index_name, index_name], [partition, ''], nprobe, top_k, log_id)
     return {'code': 1, 'data': _ret}
 
 

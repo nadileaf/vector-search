@@ -360,14 +360,14 @@ class Faiss:
         logs.add(log_id, 'release', f'Successfully releasing index {log_name} (use time: {time.time() - s_time:.4f}s)')
         return 1
 
-    def merge_search(self,
-                     vectors: np.ndarray,
-                     tenant: str,
-                     index_names: List[str],
-                     partitions: List[str] = None,
-                     nprobe=10,
-                     top_k=20,
-                     log_id: Union[str, int] = 'Faiss') -> List[List[dict]]:
+    def search(self,
+               vectors: np.ndarray,
+               tenant: str,
+               index_names: List[str],
+               partitions: List[str] = None,
+               nprobe=10,
+               top_k=20,
+               log_id: Union[str, int] = 'Faiss') -> List[List[dict]]:
         log_name = f'"{index_names}({partitions})" (tenant: {tenant})'
         logs.add(log_id, logs.fn_name(), f'start searching in {log_name} for vectors ...')
 
@@ -470,95 +470,6 @@ class Faiss:
 
         logs.add(log_id, logs.fn_name(), f'Finish all searching in {log_name} '
                                          f'(use_time: {time.time() - total_s_time:.4f}s): {results}')
-        return results
-
-    def search(self,
-               tenant: str,
-               index_name: str,
-               vectors: np.ndarray,
-               partition: str = '',
-               nprobe=10,
-               top_k=20,
-               log_id: Union[str, int] = 'Faiss') -> List[List[dict]]:
-        log_name = f'"{index_name}({partition})" (tenant: {tenant})'
-        logs.add(log_id, 'search', f'start searching in {log_name} for vectors ...')
-
-        if vectors is None or not vectors.any():
-            logs.add(log_id, logs.fn_name(), f'Error: vectors cannot be empty', _level=logs.LEVEL_ERROR)
-            return []
-
-        total_s_time = time.time()
-
-        avg_results = []
-
-        partition = partition if partition else self.DEFAULT
-        if partition == self.DEFAULT and tenant in self.mv_indices and index_name in self.mv_indices[tenant]:
-            s_time = time.time()
-
-            # 获取该 index 每个 partition 的 滑动平均向量
-            mv_indices = self.mv_indices[tenant][index_name]
-            mv_indices = dict(filter(lambda x: x[1], mv_indices.items()))
-
-            partitions = list(mv_indices.keys())
-            avg_vectors = list(map(lambda x: x['vector'], mv_indices.values()))
-
-            # 根据 滑动平均向量，计算语义相似度
-            sims = cosine_similarity(vectors, avg_vectors)
-
-            # 整理、排序 滑动平均向量计算得出的结果
-            for sim in sims:
-                sim = list(zip(partitions, sim))
-                sim.sort(key=lambda x: -x[1])
-                avg_results.append(dict(sim))
-
-            logs.add(log_id, 'search', f'finish moving average sim score (use time: {time.time() - s_time:.4f}s)')
-
-        results = []
-
-        s_time = time.time()
-
-        # 获取 index
-        index = self.index(tenant, index_name, partition)
-        index.nprobe = nprobe
-
-        D, I = index.search(vectors, top_k)
-
-        logs.add(log_id, 'search', f'finish index search (use time: {time.time() - s_time:.4f}s)')
-        s_time = time.time()
-
-        ids = list(set(list(map(int, I.reshape(-1)))))
-
-        info = redis_batch_get(ids, get_table_name(tenant, index_name, partition))
-        d_id_2_info = {_id: info[i] for i, _id in enumerate(ids)}
-
-        logs.add(log_id, 'search', f'finish getting info (use time: {time.time() - s_time:.4f}s)')
-
-        for _i, _result_ids in enumerate(I):
-            similarities = D[_i]
-            tmp_result = []
-
-            for _id, _similarity in set(list(zip(_result_ids, similarities))):
-                if _id == -1:
-                    continue
-
-                data = d_id_2_info[_id]
-                if not data:
-                    continue
-
-                if not avg_results:
-                    avg_similarity = 1.
-                else:
-                    _partition = data['partition']
-                    avg_similarity = avg_results[_i][_partition] if _partition in avg_results[_i] else 0.
-
-                tmp_result.append({'data': data, 'score': combine_avg_score(avg_similarity, _similarity)})
-
-            if tmp_result:
-                tmp_result.sort(key=lambda x: -x['score'])
-            results.append(tmp_result)
-
-        logs.add(log_id, 'search', f'finish searching in {log_name} '
-                                   f'(use_time: {time.time() - total_s_time:.4f}s): {results}')
         return results
 
     def delete_with_id(self, ids: List[int], tenant: str, index_name: str, partition: str = '',
