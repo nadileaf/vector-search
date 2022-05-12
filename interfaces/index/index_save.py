@@ -43,7 +43,7 @@ if __name__ == '__main__':
     from interfaces.index.index_train import index_train
     from interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 
-    index_create('test', 384, '')
+    index_create('test', 384, '', 500)
 
     index_train(VectorInput(
         index_name='test',
