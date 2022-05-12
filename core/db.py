@@ -14,6 +14,7 @@ cur_dir = os.path.split(os.path.abspath(__file__))[0]
 root_dir = os.path.split(cur_dir)[0]
 sys.path.append(root_dir)
 
+from typing import Callable
 from config.path import INDEX_DIR
 from lib.utils import md5, uid, get_relative_file
 from lib.redis_utils import redis_get, redis_save, redis_batch_save, redis_drop, redis_batch_get, redis_del, \
@@ -67,6 +68,9 @@ class Faiss:
         origin_len = len(vectors)
         partition = partition if partition else self.DEFAULT
 
+        index = self.index(tenant, index_name, partition)
+        index_type = get_index_type(index)
+
         log_name = f'{index_name}({partition}) (tenant: {tenant})'
         logs.add(log_id, 'add', f'start inserting data (len: {origin_len}) to "{log_name}" ...')
 
@@ -79,8 +83,17 @@ class Faiss:
                 _v['partition'] = partition
 
         origin_s_time = s_time = time.time()
+
+        # 根据 index 类型 选用不同的 uid 函数
+        if index_type.startswith('Flat'):
+            id_queue = Queue()
+            for i in range(origin_len):
+                id_queue.put(index.ntotal + i)
+        else:
+            id_queue = None
+
         # 获取数据的 id
-        ids = get_uids(tenant, index_name, texts if texts else vectors, info, partition)
+        ids = get_uids(tenant, index_name, texts if texts else vectors, info, partition, id_queue)
         filter_ids = ids
 
         logs.add(log_id, 'add', f'finish getting uids '
@@ -106,7 +119,10 @@ class Faiss:
         s_time = time.time()
 
         # 添加 到 index
-        self.index(tenant, index_name, partition).add_with_ids(vectors, np.array(filter_ids))
+        if index_type.startswith('Flat'):
+            index.add(vectors)
+        else:
+            index.add_with_ids(vectors, np.array(filter_ids))
 
         logs.add(log_id, 'add', f'finish adding data to index (len: {len(filter_ids)}/{origin_len}) "{log_name},'
                                 f' use time: {time.time() - s_time:.4f}s)"')
@@ -522,10 +538,13 @@ def get_nlist(count: int):
 
 def get_index(count: int, dim: int):
     nlist = get_nlist(count)
-    quantizer = faiss.IndexFlatIP(dim)
-    if count <= 20000:
+    if count <= 1024:
+        return faiss.IndexFlatIP(dim)
+    elif count <= 20000:
+        quantizer = faiss.IndexFlatIP(dim)
         return faiss.IndexIVFFlat(quantizer, dim, nlist, faiss.METRIC_INNER_PRODUCT)
     else:
+        quantizer = faiss.IndexFlatIP(dim)
         return faiss.IndexIVFPQ(quantizer, dim, nlist, int(dim / 4), 8, faiss.METRIC_INNER_PRODUCT)
 
 
@@ -533,8 +552,8 @@ def get_table_name(tenant: str, index_name: str, partition: str = ''):
     return f'{tenant}____{index_name}____{partition}'
 
 
-def get_md5_table(tenant: str, index_name: str, partition: str = ''):
-    return get_table_name(tenant, index_name, partition) + '____md5'
+def get_md5_table(tenant: str, index_name: str, partition: str = '', id_type='IVF'):
+    return get_table_name(tenant, index_name, partition) + f'____md5_{id_type}'
 
 
 def _get_uid_thread(_queue: Queue, table_name: str, d_mid_2_uid: Dict[int, int]):
@@ -555,12 +574,23 @@ def get_uids(
         texts: Union[np.ndarray, List[Any]],
         info: List[Any] = None,
         partition: str = '',
+        id_queue: Queue = None,
         num_thread=15) -> List[int]:
     """ 并发获取 uid """
-    table_name = get_md5_table(tenant, index_name, partition)
+    table_name = get_md5_table(tenant, index_name, partition, 'IVF' if id_queue is None else 'Flat')
 
     info = [''] * len(texts) if not info else info
     md5_ids = list(map(md5, zip(texts, info)))
+
+    if id_queue is not None:
+        ids = []
+        for mid in md5_ids:
+            _uid = redis_get(mid, table_name)
+            if not _uid:
+                _uid = id_queue.get()
+                redis_save(mid, _uid, table_name)
+            ids.append(int(_uid))
+        return ids
 
     _queue = Queue()
     for mid in md5_ids:
@@ -605,6 +635,24 @@ def get_metric(metric_type: int):
         return 'JensenShannon'
     else:
         return ''
+
+
+def get_index_type(index: faiss.Index) -> str:
+    for index_type, index_class in {
+        'FlatIP': faiss.IndexFlatIP,
+        'IVFFlat': faiss.IndexIVFFlat,
+        'IVFPQ': faiss.IndexIVFPQ,
+        'Flat': faiss.IndexFlat,
+        'IVF': faiss.IndexIVF,
+        'index': faiss.Index,
+    }.items():
+        if isinstance(index, index_class):
+            return index_type
+    return ''
+
+
+def _get_from_queue(_queue: Queue):
+    return _queue.get()
 
 
 o_faiss = Faiss()

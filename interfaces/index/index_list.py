@@ -4,7 +4,7 @@ from fastapi import Header
 from typing import Optional
 from interfaces.base import app, log
 from interfaces.definitions.common import Response
-from core.db import o_faiss, get_metric
+from core.db import o_faiss, get_metric, get_index_type
 from config.path import INDEX_DIR
 
 
@@ -32,7 +32,8 @@ def index_list(tenant: Optional[str] = Header('_test'), log_id: int = None):
                 'dim_size': _index.d,
                 'n_total': _index.ntotal,
                 'is_trained': _index.is_trained,
-                'metric_type': get_metric(_index.metric_type)
+                'metric_type': get_metric(_index.metric_type),
+                'index_type': get_index_type(_index),
             }
 
     index_dir = os.path.join(INDEX_DIR, tenant)

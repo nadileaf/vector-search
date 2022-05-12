@@ -4,7 +4,7 @@ from fastapi import Header
 from typing import Optional, List
 from interfaces.base import app, log
 from interfaces.definitions.common import Response
-from core.db import o_faiss
+from core.db import o_faiss, get_index_type
 
 
 class VectorInput(BaseModel):
@@ -39,6 +39,10 @@ def index_train(_input: VectorInput, tenant: Optional[str] = Header('_test'), lo
     index = o_faiss.index(tenant, index_name, partition)
     if index is None:
         return {'code': 0, 'msg': f'index "{index_name}({partition})" (tenant: {tenant}) 不存在，请先创建索引'}
+
+    index_type = get_index_type(index)
+    if index_type.startswith('Flat'):
+        return {'code': 1, 'msg': f'index "{index_name}({partition})" (tenant: {tenant}) 是 {index_type} 索引，不需要训练'}
 
     vectors = np.array(vectors).astype(np.float32)
     o_faiss.train(tenant, index_name, vectors, partition, log_id)

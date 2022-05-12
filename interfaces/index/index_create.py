@@ -51,4 +51,4 @@ def index_create(
 
 if __name__ == '__main__':
     # 测试代码
-    index_create('test', 384, '')
+    index_create('test', 384, '', 500)
