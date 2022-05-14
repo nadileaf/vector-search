@@ -261,12 +261,18 @@ class Faiss:
                 if not file_name.endswith('.index'):
                     continue
 
+                # 若本身已在内存中，无需重复加载
                 partition = file_name[:-len('.index')]
+                if self.index(tenant, index_name, partition) is not None:
+                    continue
+
                 index_path = os.path.join(index_dir, file_name)
                 self.indices[tenant][index_name][partition] = faiss.read_index(index_path)
 
+            # 若文件存在 且 没有被加载到内存
             mv_index_path = os.path.join(index_dir, 'mv_index.pkl')
-            if os.path.exists(mv_index_path):
+            if os.path.exists(mv_index_path) and (index_name not in self.mv_indices[tenant] or
+                                                  self.mv_indices[tenant][index_name] is None):
                 with open(mv_index_path, 'rb') as f:
                     self.mv_indices[tenant][index_name] = pickle.load(f)
 
@@ -281,7 +287,9 @@ class Faiss:
                 self.mv_indices[tenant] = {}
             if index_name not in self.indices[tenant]:
                 self.indices[tenant][index_name] = {}
-            self.indices[tenant][index_name][partition] = faiss.read_index(index_path)
+
+            if self.index(tenant, index_name, partition) is None:
+                self.indices[tenant][index_name][partition] = faiss.read_index(index_path)
 
         logs.add(log_id, 'load_one', f'Successfully loading index "{index_name}({partition})" '
                                      f'(use time: {time.time() - s_time:.4f}s, tenant: {tenant})')
@@ -320,12 +328,17 @@ class Faiss:
                     if not file_name.endswith('.index'):
                         continue
 
+                    # 若已在内存，无需重复加载
                     partition = file_name[:-len('.index')]
+                    if self.index(tenant, index_name, partition) is not None:
+                        continue
+
                     index_path = os.path.join(index_dir, file_name)
                     self.indices[_tenant][index_name][partition] = faiss.read_index(index_path)
 
                 mv_index_path = os.path.join(index_dir, 'mv_index.pkl')
-                if os.path.exists(mv_index_path):
+                if os.path.exists(mv_index_path) and (index_name not in self.mv_indices[tenant] or
+                                                      self.mv_indices[tenant][index_name] is None):
                     with open(mv_index_path, 'rb') as f:
                         self.mv_indices[_tenant][index_name] = pickle.load(f)
 
@@ -483,7 +496,7 @@ class Faiss:
                                          f'(len: {len(ids)}, tenant: {tenant}) ... ')
 
         partition = partition if partition else self.DEFAULT
-        ids = list(filter(lambda x: x or x is 0, ids))
+        ids = list(filter(lambda x: x or x == 0, ids))
 
         redis_del(ids, table_name=get_table_name(tenant, index_name, partition))
 
