@@ -1,3 +1,4 @@
+import os
 from config import env
 
 if env.ENV == env.DEV:
@@ -6,4 +7,6 @@ if env.ENV == env.DEV:
 elif env.ENV == env.PRE_TEST:
     redis_conf = {'host': '10.10.10.202', 'port': '1012'}
 else:
-    redis_conf = {'host': 'text2sql-redis', 'port': '6379'}
+    host = os.getenv('REDIS_HOST')
+    port = os.getenv('REDIS_PORT')
+    redis_conf = {'host': host if host else 'text2sql-redis', 'port': port if port else '6379'}
