@@ -16,12 +16,13 @@ class VectorInput(BaseModel):
     partition: Optional[str] = Field('', description='索引的分区')
     filter_exist: Optional[bool] = Field(False, description='是否去重插入向量到索引')
     add_default_partition: Optional[bool] = Field(False, description='是否将当前分区的内容也添加到 默认分区')
+    ret_id: Optional[bool] = Field(False, description='是否返回数据的id')
 
 
 class Result(BaseModel):
     count: int = Field(0, description='插入成功的数量')
     exist_count: int = Field(0, description='重复的数量')
-    ids: List[int] = Field([], description='插入的数据的 id 数组')
+    ids: Optional[List[int]] = Field([], description='插入的数据的 id 数组')
 
 
 class InsertResponse(Response):
@@ -42,6 +43,7 @@ def index_add_vectors(_input: VectorInput, tenant: Optional[str] = Header('_test
     partition = _input.partition
     filter_exist = _input.filter_exist
     add_default_partition = _input.add_default_partition
+    ret_id = _input.ret_id
 
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}
@@ -59,6 +61,10 @@ def index_add_vectors(_input: VectorInput, tenant: Optional[str] = Header('_test
     vectors = np.array(vectors).astype(np.float32)
     ret = o_faiss.add(tenant, index_name, vectors, texts, info, partition, filter_exist,
                       add_default=add_default_partition, log_id=log_id)
+
+    # 根据用户输入参数，决定是否返回 ids，提高响应速度
+    if not ret_id and 'ids' in ret:
+        del ret['ids']
     return {'code': 1, 'data': ret}
 
 
