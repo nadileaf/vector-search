@@ -42,7 +42,8 @@ def log(func):
 
         # 记录请求的参数
         log_args = [_process_arg(arg) for arg in args]
-        logs.add(log_id, f'Request {func.__name__}', f'args: {log_args}, kwargs: {kwargs}')
+        log_kwargs = {k: _process_arg(v) for k, v in kwargs.items()}
+        logs.add(log_id, f'Request {func.__name__}', f'args: {log_args}, kwargs: {log_kwargs}')
         s_time = time.time()
 
         # 执行 函数本身
