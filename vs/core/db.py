@@ -1,5 +1,4 @@
 import os
-import sys
 import math
 import time
 import faiss
@@ -9,11 +8,6 @@ import numpy as np
 from typing import List, Union, Any, Dict
 from six.moves import cPickle as pickle
 from sklearn.metrics.pairwise import cosine_similarity
-
-cur_dir = os.path.split(os.path.abspath(__file__))[0]
-root_dir = os.path.split(cur_dir)[0]
-sys.path.append(root_dir)
-
 from vs.config.path import INDEX_DIR
 from vs.lib.utils import md5, uid, get_relative_file
 from vs.lib.redis_utils import redis_get, redis_save, redis_batch_save, redis_drop, redis_batch_get, redis_del, \

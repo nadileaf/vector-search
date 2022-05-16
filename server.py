@@ -24,6 +24,8 @@ from vs.interfaces.index import index_exist
 from vs.interfaces.index import index_list
 from vs.interfaces.index import index_train_batch
 
+sys.path.pop()
+
 if __name__ == '__main__':
     app.add_middleware(
         CORSMiddleware,

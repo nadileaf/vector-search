@@ -18,6 +18,8 @@ from vs.interfaces.index.index_save import index_save
 from vs.interfaces.index.index_search import index_search, SearchInput
 from vs.interfaces.index.index_train import index_train, TrainVectorInput
 
+sys.path.pop()
+
 
 def train(index_name: str, vectors: List[List[float]], partition: str = '', tenant: str = '_test', log_id: int = None):
     return index_train(TrainVectorInput(
