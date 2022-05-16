@@ -38,7 +38,7 @@ def log(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         # 生成请求的唯一id
-        log_id = logs.uid()
+        log_id = logs.uid() if 'log_id' not in kwargs or not kwargs['log_id'] else kwargs['log_id']
 
         # 记录请求的参数
         log_args = [_process_arg(arg) for arg in args]
@@ -47,8 +47,7 @@ def log(func):
         s_time = time.time()
 
         # 执行 函数本身
-        if 'log_id' not in kwargs or not kwargs['log_id']:
-            kwargs['log_id'] = log_id
+        kwargs['log_id'] = log_id
         _ret = func(*args, **kwargs)
 
         e_time = time.time()
