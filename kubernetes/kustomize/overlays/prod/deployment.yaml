@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vector-search:cpu-2.1.9
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.0.1
           imagePullPolicy: Always
           env:
           - name: MY_DEV_ENV
