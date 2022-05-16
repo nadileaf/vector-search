@@ -231,7 +231,7 @@ class Faiss:
 
             if tenant in self.mv_indices and index_name in self.mv_indices[tenant] and \
                     self.mv_indices[tenant][index_name] is not None:
-                with open(get_relative_file(index_name, 'mv_index.pkl', root=INDEX_DIR), 'wb') as f:
+                with open(get_relative_file(tenant, index_name, 'mv_index.pkl', root=INDEX_DIR), 'wb') as f:
                     pickle.dump(self.mv_indices[tenant][index_name], f)
 
             logs.add(log_id, 'save', f'Finish saving index "{index_name}" '
@@ -330,15 +330,15 @@ class Faiss:
 
                     # 若已在内存，无需重复加载
                     partition = file_name[:-len('.index')]
-                    if self.index(tenant, index_name, partition) is not None:
+                    if self.index(_tenant, index_name, partition) is not None:
                         continue
 
                     index_path = os.path.join(index_dir, file_name)
                     self.indices[_tenant][index_name][partition] = faiss.read_index(index_path)
 
                 mv_index_path = os.path.join(index_dir, 'mv_index.pkl')
-                if os.path.exists(mv_index_path) and (index_name not in self.mv_indices[tenant] or
-                                                      self.mv_indices[tenant][index_name] is None):
+                if os.path.exists(mv_index_path) and (index_name not in self.mv_indices[_tenant] or
+                                                      self.mv_indices[_tenant][index_name] is None):
                     with open(mv_index_path, 'rb') as f:
                         self.mv_indices[_tenant][index_name] = pickle.load(f)
 
