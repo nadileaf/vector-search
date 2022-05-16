@@ -1,6 +1,6 @@
 import re
 from fastapi import Query, Header
-from typing import Optional
+from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss, get_index
@@ -19,7 +19,7 @@ def index_create(
         partition: Optional[str] = Query('', description='索引的分区'),
         count: Optional[int] = Query(10000, description='预估的数据量'),
         tenant: Optional[str] = Header('_test'),
-        log_id: int = None,
+        log_id: Union[int, str] = None,
 ):
     index_name = index_name if isinstance(index_name, str) else index_name.default
     dim_size = int(dim_size) if isinstance(dim_size, int) else dim_size.default

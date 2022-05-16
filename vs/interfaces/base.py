@@ -47,7 +47,8 @@ def log(func):
         s_time = time.time()
 
         # 执行 函数本身
-        kwargs['log_id'] = log_id
+        if 'log_id' not in kwargs or not kwargs['log_id']:
+            kwargs['log_id'] = log_id
         _ret = func(*args, **kwargs)
 
         e_time = time.time()

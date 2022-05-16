@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
@@ -34,7 +34,7 @@ class InsertResponse(Response):
           response_model=InsertResponse,
           description="添加向量到索引 (内存；需要手动调用 save 接口才会将 索引数据保存到磁盘)")
 @log
-def index_add_vectors(_input: VectorInput, tenant: Optional[str] = Header('_test'), log_id: int = None):
+def index_add_vectors(_input: VectorInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = _input.index_name
     vectors = _input.vectors

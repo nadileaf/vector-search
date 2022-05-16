@@ -1,7 +1,7 @@
 import os
 from pydantic import Field
 from fastapi import Header
-from typing import Optional
+from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss, get_metric, get_index_type
@@ -17,7 +17,7 @@ class IndicesResponse(Response):
          response_model=IndicesResponse,
          description="列举索引")
 @log
-def index_list(tenant: Optional[str] = Header('_test'), log_id: int = None):
+def index_list(tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
 
     if tenant not in o_faiss.indices:

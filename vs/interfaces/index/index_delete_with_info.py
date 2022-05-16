@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
@@ -21,7 +21,7 @@ class InfoInput(BaseModel):
           response_model=Response,
           description="删除数据，根据 info 删除")
 @log
-def index_delete_with_info(_input: InfoInput, tenant: Optional[str] = Header('_test'), log_id: int = None):
+def index_delete_with_info(_input: InfoInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = _input.index_name
     vectors = _input.vectors

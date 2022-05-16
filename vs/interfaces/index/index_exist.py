@@ -1,9 +1,8 @@
 from pydantic import Field
 from fastapi import Query, Header
-from typing import Optional
+from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
-from vs.lib import logs
 from vs.core.db import o_faiss
 
 
@@ -20,7 +19,7 @@ def index_exist(
         index_name: str = Query('', description='索引的名称'),
         partition: Optional[str] = Query('', description='索引的分区'),
         tenant: Optional[str] = Header('_test'),
-        log_id: int = None,
+        log_id: Union[int, str] = None,
 ):
     index_name = index_name if isinstance(index_name, str) else index_name.default
     partition = partition if isinstance(partition, str) else partition.default

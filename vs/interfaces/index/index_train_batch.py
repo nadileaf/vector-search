@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
-from typing import Optional, List
+from typing import Optional, List, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
@@ -28,7 +28,7 @@ class Result(BaseModel):
           response_model=Response,
           description="训练索引；避免数据过大，没法经过网络请求传输")
 @log
-def index_train_batch(_input: VectorInput, tenant: Optional[str] = Header('_test'), log_id: int = None):
+def index_train_batch(_input: VectorInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = _input.index_name
     vectors = _input.vectors

@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
@@ -29,7 +29,7 @@ class SearchResponse(Response):
           response_model=SearchResponse,
           description="搜索数据")
 @log
-def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), log_id: int = None):
+def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
     index_names = _input.index_names
     vectors = _input.vectors
