@@ -9,7 +9,7 @@ from vs.config.path import INDEX_DIR
 
 
 class IndicesResponse(Response):
-    data: dict = Field(description='索引列表 dict')
+    data: Optional[dict] = Field({}, description='索引列表 dict')
 
 
 @app.get('/v1/index/list',
