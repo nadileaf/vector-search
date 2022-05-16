@@ -1,9 +1,7 @@
 import os
-import io
 import sys
 import time
 import inspect
-import traceback
 from lib import utils
 from config.path import LOG_DIR
 
@@ -70,32 +68,6 @@ def add(_id, function, message, pre_sep='', empty_line=0, _level=LEVEL_MSG, show
     # write log
     with open(file_path, 'ab') as f:
         f.write(string.encode('utf-8'))
-
-
-def ret(_id, _fn_name, method, data, _level=LEVEL_MSG):
-    add(f'{_id}', f'{method} {_fn_name}', f'return {data}', _level=_level)
-    if isinstance(data, dict):
-        data['log_id'] = _id
-    return data
-
-
-def get_trace_back():
-    fp = io.StringIO()  # 创建内存文件对象
-    traceback.print_exc(file=fp)
-    return fp.getvalue()
-
-
-def ret_error(_id, _fn_name, method, data, get_trace=True):
-    if get_trace:
-        error = get_trace_back()
-        print(error)
-        if 'msg' in data:
-            data['msg'] += f'; {error}'
-
-    add(f'{_id}', f'{method} {_fn_name}', f'return {data}', _level=LEVEL_ERROR)
-    if isinstance(data, dict):
-        data['log_id'] = _id
-    return data
 
 
 if __name__ == "__main__":

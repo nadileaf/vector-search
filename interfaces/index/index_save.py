@@ -22,7 +22,7 @@ def index_save(
     partition = partition if isinstance(partition, str) else partition.default
 
     if not index_name:
-        return logs.ret(log_id, logs.fn_name(), 'GET', {'code': 0, 'msg': f'index_name 不能为空'}, logs.LEVEL_ERROR)
+        return {'code': 0, 'msg': f'index_name 不能为空'}
 
     _ret = 1
     if index_name == '*':
