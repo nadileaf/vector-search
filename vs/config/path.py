@@ -7,7 +7,7 @@ CODE_ROOT = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
 PRJ_NAME = os.path.split(CODE_ROOT)[1]
 
 # 数据的根目录
-DATA_ROOT = os.path.join(CODE_ROOT, 'data')
+DATA_ROOT = f'/data/{PRJ_NAME}'
 # DATA_ROOT = os.path.join(os.path.split(os.path.split(CODE_ROOT)[0])[0], 'data', PRJ_NAME)
 
 # 索引的目录
