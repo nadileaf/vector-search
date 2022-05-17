@@ -1,7 +1,7 @@
 import os
 
 # 代码的根目录
-CODE_ROOT = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+CODE_ROOT = os.path.split(os.path.split(os.path.split(os.path.abspath(__file__))[0])[0])[0]
 
 # 代码项目名
 PRJ_NAME = os.path.split(CODE_ROOT)[1]
