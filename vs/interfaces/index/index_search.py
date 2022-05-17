@@ -13,6 +13,7 @@ class SearchInput(BaseModel):
     partitions: Optional[List[str]] = Field(None, description='索引的分区')
     nprobe: Optional[int] = Field(10, description='查找索引中最近的 nprobe 个中心点')
     top_k: Optional[int] = Field(20, description='返回 top_k 个结果')
+    use_mv: Optional[bool] = Field(True, description='搜索时是否考虑滑动平均向量因素; 可用于过滤脏数据')
 
 
 class Result(BaseModel):
@@ -36,6 +37,7 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
     partitions = _input.partitions
     nprobe = _input.nprobe
     top_k = _input.top_k
+    use_mv = _input.use_mv
 
     if not index_names:
         return {'code': 0, 'msg': f'index_names 不能为空'}
@@ -44,19 +46,19 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
         return {'code': 0, 'msg': f'vectors 不能为空'}
 
     vectors = np.array(vectors).astype(np.float32)
-    _ret = o_faiss.search(vectors, tenant, index_names, partitions, nprobe, top_k, log_id)
+    _ret = o_faiss.search(vectors, tenant, index_names, partitions, nprobe, top_k, use_mv=use_mv, log_id=log_id)
     return {'code': 1, 'data': _ret}
 
 
 if __name__ == '__main__':
     # 测试代码
     from vs.interfaces.index.index_create import index_create
-    from vs.interfaces.index.index_train import index_train
+    from vs.interfaces.index.index_train import index_train, TrainVectorInput
     from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 
     index_create('test', 384, '', 1000)
 
-    index_train(VectorInput(
+    index_train(TrainVectorInput(
         index_name='test',
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
     ))
@@ -92,6 +94,7 @@ if __name__ == '__main__':
         index_names=['test'],
         vectors=list(map(lambda l: list(map(float, l)), a)),
         top_k=4,
+        use_mv=False
     ))
 
     for v_list in ret['data']:

@@ -374,6 +374,7 @@ class Faiss:
                partitions: List[str] = None,
                nprobe=10,
                top_k=20,
+               use_mv=True,
                log_id: Union[str, int] = 'Faiss') -> List[List[dict]]:
         log_name = f'"{index_names}({partitions})" (tenant: {tenant})'
         logs.add(log_id, logs.fn_name(), f'start searching in {log_name} for vectors ...')
@@ -400,7 +401,8 @@ class Faiss:
 
             table_name = get_table_name(tenant, index_name, partition)
 
-            if partition == self.DEFAULT and tenant in self.mv_indices and index_name in self.mv_indices[tenant]:
+            if use_mv and partition == self.DEFAULT and tenant in self.mv_indices and \
+                    index_name in self.mv_indices[tenant]:
                 s_time = time.time()
 
                 # 获取该 index 每个 partition 的 滑动平均向量

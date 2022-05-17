@@ -118,6 +118,7 @@ def search(
         partitions: List[str] = None,
         nprobe: int = 10,
         top_k: int = 20,
+        use_mv: bool = True,
         tenant: str = '_test',
         log_id: int = None):
     return index_search(SearchInput(
@@ -125,5 +126,6 @@ def search(
         vectors=vectors,
         partitions=partitions,
         nprobe=nprobe,
-        top_k=top_k
+        top_k=top_k,
+        use_mv=use_mv,
     ), tenant=tenant, log_id=log_id)
