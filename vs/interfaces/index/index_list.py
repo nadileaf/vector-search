@@ -21,7 +21,7 @@ def index_list(tenant: Optional[str] = Header('_test'), log_id: Union[int, str] 
     tenant = tenant if isinstance(tenant, str) else tenant.default
 
     if tenant not in o_faiss.indices:
-        return {'code': 0, 'msg': f'tenant "{tenant}" 下没有索引'}
+        return {'code': 1, 'data': {}, 'msg': f'tenant "{tenant}" 下没有索引'}
 
     indices = {}
     for index_name, partitions in o_faiss.indices[tenant].items():
