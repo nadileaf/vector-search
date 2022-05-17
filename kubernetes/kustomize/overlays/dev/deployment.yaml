@@ -3,6 +3,7 @@ kind: StatefulSet
 metadata:
   name: vector-search
 spec:
+  serviceName: vector-search
   replicas: 1
   selector:
     matchLabels:
