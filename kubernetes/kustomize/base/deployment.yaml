@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: vector-search
 spec:
@@ -14,3 +14,14 @@ spec:
       containers:
         - name: vector-search
           image: harbor.nadileaf.com/ml-model/vs:cpu-1.0.1
+          volumeMounts:
+            - name: vector-search-db
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: vector-search-db
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: "20Gi"
