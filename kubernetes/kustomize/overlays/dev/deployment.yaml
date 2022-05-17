@@ -41,7 +41,7 @@ spec:
             - bash
             - -c
             - |
-              python /code/vector-search/server.py > /data/vector-search/logs/server.log 2>&1
+              python /code/vector-search/server.py
           volumeMounts:
             - name: vector-search-db
               mountPath: /data
