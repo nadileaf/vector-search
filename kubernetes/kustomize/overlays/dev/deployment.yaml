@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: vector-search
 spec:
@@ -39,5 +39,16 @@ spec:
             - -c
             - |
               python /code/vector-search/server.py > /data/vector-search/logs/server.log 2>&1
+          volumeMounts:
+            - name: vector-search-db
+              mountPath: /data
       imagePullSecrets:
         - name: harbor-pull-secret
+  volumeClaimTemplates:
+    - metadata:
+        name: vector-search-db
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: "20Gi"
