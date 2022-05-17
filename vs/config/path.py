@@ -1,7 +1,7 @@
 import os
 
 # 代码的根目录
-CODE_ROOT = os.path.split(os.path.split(os.path.split(os.path.abspath(__file__))[0])[0])[0]
+CODE_ROOT = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
 
 # 代码项目名
 PRJ_NAME = os.path.split(CODE_ROOT)[1]
@@ -9,7 +9,7 @@ PRJ_NAME = os.path.split(CODE_ROOT)[1]
 # 数据的根目录
 DATA_ROOT = f'/data/{PRJ_NAME}'
 if not os.path.exists(DATA_ROOT):
-    DATA_ROOT = os.path.join(os.path.split(os.path.split(CODE_ROOT)[0])[0], 'data', PRJ_NAME)
+    DATA_ROOT = os.path.join(CODE_ROOT, 'data')
 
 # 索引的目录
 INDEX_DIR = os.path.join(DATA_ROOT, 'index')
