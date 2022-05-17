@@ -1,8 +1,9 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: vector-search
 spec:
+  serviceName: vector-search
   replicas: 1
   selector:
     matchLabels:
@@ -14,9 +15,11 @@ spec:
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
+      nodeSelector:
+        mesoor.com/component: ml-cpu
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vs:cpu-1.0.1
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.0.2
           imagePullPolicy: Always
           env:
           - name: MY_DEV_ENV
@@ -28,16 +31,29 @@ spec:
 
           resources:
             requests:
-              cpu: "4"
-              memory: 16Gi
+              cpu: "1"
+              memory: 8Gi
             limits:
               cpu: "16"
               memory: 16Gi
+
+          volumeMounts:
+            - name: vector-search-db
+              mountPath: /data
 
           command:
             - bash
             - -c
             - |
-              python /code/vector-search/server.py > /data/vector-search/logs/server.log 2>&1
+              python /code/vector-search/server.py > /data/server.log 2>&1
+
       imagePullSecrets:
         - name: harbor-pull-secret
+  volumeClaimTemplates:
+    - metadata:
+        name: vector-search-db
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: "20Gi"

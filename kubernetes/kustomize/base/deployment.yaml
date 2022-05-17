@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vs:cpu-1.0.1
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.0.2
           volumeMounts:
             - name: vector-search-db
               mountPath: /data
