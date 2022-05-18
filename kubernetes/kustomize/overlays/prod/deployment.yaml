@@ -32,10 +32,10 @@ spec:
           resources:
             requests:
               cpu: 400m
-              memory: 4Gi
+              memory: 6Gi
             limits:
-              cpu: "4"
-              memory: 8Gi
+              cpu: "16"
+              memory: 16Gi
 
           volumeMounts:
             - name: vector-search-db
