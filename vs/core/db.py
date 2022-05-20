@@ -77,8 +77,8 @@ class Faiss:
 
             table_name = get_md5_table(tenant, index_name, partition, 'Flat')
 
-            info = [''] * len(texts) if not info else info
-            md5_ids = list(map(md5, zip(texts, info)))
+            info = [''] * len(vectors) if not info else info
+            md5_ids = list(map(md5, zip(texts if texts else vectors, info)))
 
             redis_batch_save(md5_ids, ids, table_name)
 
@@ -515,7 +515,7 @@ class Faiss:
         info = process_info(info, len(vectors), partition)
 
         table_name = get_md5_table(tenant, index_name, partition, 'Flat' if index_type.startswith('Flat') else 'IVF')
-        md5_ids = list(map(md5, zip(texts, info)))
+        md5_ids = list(map(md5, zip(texts if texts else vectors, info)))
         ids = redis_batch_get(md5_ids, table_name)
 
         self.delete_with_id(ids, tenant, index_name, partition, log_id)
