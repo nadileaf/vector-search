@@ -16,8 +16,8 @@ class InfoInput(BaseModel):
     partition: Optional[str] = Field('', description='索引的分区')
 
 
-@app.post('/v1/index/delete_with_ids',
-          name="v1 index delete with ids",
+@app.post('/v1/index/delete_with_info',
+          name="v1 index delete with info",
           response_model=Response,
           description="删除数据，根据 info 删除")
 @log
