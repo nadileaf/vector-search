@@ -23,6 +23,9 @@ from vs.interfaces.index import index_train
 from vs.interfaces.index import index_exist
 from vs.interfaces.index import index_list
 from vs.interfaces.index import index_train_batch
+from vs.interfaces.index import index_delete_with_info
+from vs.interfaces.index import index_delete_with_ids
+from vs.interfaces.index import index_update_with_info
 
 sys.path.pop()
 
