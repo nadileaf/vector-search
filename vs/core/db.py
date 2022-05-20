@@ -3,15 +3,13 @@ import math
 import time
 import faiss
 from queue import Queue
-import threading
 import numpy as np
-from typing import List, Union, Any, Dict
+from sqlitedict import SqliteDict
+from typing import List, Union, Any
 from six.moves import cPickle as pickle
 from sklearn.metrics.pairwise import cosine_similarity
-from vs.config.path import INDEX_DIR
+from vs.config.path import INDEX_DIR, SQLITE_DIR
 from vs.lib.utils import md5, uid, get_relative_file
-from vs.lib.redis_utils import redis_get, redis_save, redis_batch_save, redis_drop, redis_batch_get, redis_del, \
-    redis_batch_exist
 from vs.lib import logs
 
 
@@ -80,7 +78,9 @@ class Faiss:
             info = [''] * len(vectors) if not info else info
             md5_ids = list(map(md5, zip(texts if texts else vectors, info)))
 
-            redis_batch_save(md5_ids, ids, table_name)
+            with _db(table_name) as d:
+                for _i, mid in enumerate(md5_ids):
+                    d[mid] = ids[_i]
 
         else:
             # 根据 index 类型 选用不同的 uid 函数
@@ -164,8 +164,10 @@ class Faiss:
 
         s_time = time.time()
 
-        # 添加 具体 info 到 redis
-        redis_batch_save(filter_ids, info, get_table_name(tenant, index_name, partition))
+        # 添加 具体 info 到 db
+        with _db(get_table_name(tenant, index_name, partition)) as d:
+            for _i, _id in enumerate(filter_ids):
+                d[_id] = info[_i]
 
         logs.add(log_id, 'add', f'finish inserting data (len: {len(filter_ids)}/{origin_len}, '
                                 f'save_info time: {time.time() - s_time:.4f}s, '
@@ -385,10 +387,9 @@ class Faiss:
 
         total_s_time = time.time()
 
-        results = [[] for i in range(len(vectors))]
-        avg_results = [{} for i in range(len(vectors))]
-        ids = []
-        table_names = []
+        results = [[] for _ in range(len(vectors))]
+        avg_results = [{} for _ in range(len(vectors))]
+        d_table_name_2_ids = {}
 
         partitions = partitions if partitions else [''] * len(index_names)
         for i, index_name in enumerate(index_names):
@@ -430,11 +431,7 @@ class Faiss:
             logs.add(log_id, logs.fn_name(), f'finish index search (use time: {time.time() - s_time:.4f}s, '
                                              f'index: {index_name}({partition}), tenant: {tenant})')
 
-            tmp_ids = list(set(list(map(int, I.reshape(-1)))))
-            tmp_table_names = [table_name] * len(tmp_ids)
-
-            ids += tmp_ids
-            table_names += tmp_table_names
+            d_table_name_2_ids[table_name] = list(set(list(map(int, I.reshape(-1)))))
 
             for _i, _result_ids in enumerate(I):
                 similarities = D[_i]
@@ -447,7 +444,16 @@ class Faiss:
                                          f'(use time: {time.time() - total_s_time:.4f}s, tenant: {tenant})')
 
         s_time = time.time()
-        d_table_id_2_info = redis_batch_get(ids, table_names, return_dict=True)
+
+        # 获取具体的结构化信息
+        d_table_id_2_info = {}
+        for table_name, ids in d_table_name_2_ids.items():
+            with _db(table_name) as d:
+                for _id in ids:
+                    if _id in d:
+                        table_id = f"{table_name}____{_id}"
+                        d_table_id_2_info[table_id] = d[_id]
+
         logs.add(log_id, logs.fn_name(), f'finish get info (use time: {time.time() - s_time:.4f}s, tenant: {tenant})')
 
         for _i, one_results in enumerate(results):
@@ -494,7 +500,10 @@ class Faiss:
         partition = partition if partition else self.DEFAULT
         ids = list(filter(lambda x: x or x == 0, ids))
 
-        redis_del(ids, table_name=get_table_name(tenant, index_name, partition))
+        with _db(get_table_name(tenant, index_name, partition)) as d:
+            for _id in ids:
+                if _id in d:
+                    del d[_id]
 
         logs.add(log_id, logs.fn_name(), f'Finish deleting ids from "{index_name}({partition})" (tenant: {tenant})')
 
@@ -516,7 +525,9 @@ class Faiss:
 
         table_name = get_md5_table(tenant, index_name, partition, 'Flat' if index_type.startswith('Flat') else 'IVF')
         md5_ids = list(map(md5, zip(texts if texts else vectors, info)))
-        ids = redis_batch_get(md5_ids, table_name)
+
+        with _db(table_name) as d:
+            ids = [d[mid] for mid in md5_ids if mid in d]
 
         self.delete_with_id(ids, tenant, index_name, partition, log_id)
 
@@ -536,25 +547,45 @@ class Faiss:
         index = self.index(tenant, index_name, partition)
         index_type = get_index_type(index)
 
+        texts = texts if texts else vectors
+
         # 预处理 info
-        old_info = process_info(old_info, len(vectors), partition)
-        new_info = process_info(new_info, len(vectors), partition)
+        old_info = process_info(old_info, len(texts), partition)
+        new_info = process_info(new_info, len(texts), partition)
 
         table_name = get_md5_table(tenant, index_name, partition, 'Flat' if index_type.startswith('Flat') else 'IVF')
 
-        old_md5_ids = list(map(md5, zip(texts if texts else vectors, old_info)))
-        ids = redis_batch_get(old_md5_ids, table_name)
+        old_md5_ids = list(map(md5, zip(texts, old_info)))
 
-        new_md5_ids = list(map(md5, zip(texts if texts else vectors, new_info)))
-        redis_batch_save(new_md5_ids, ids, table_name)
-        redis_del(old_md5_ids, table_name)
+        updated_ids = []
+        updated_info = []
 
-        redis_batch_save(ids, new_info, table_name=get_table_name(tenant, index_name, partition))
+        with _db(table_name) as d:
+            for _i, old_mid in enumerate(old_md5_ids):
+                if old_mid not in d:
+                    continue
+
+                _uid = d[old_mid]
+                new_mid = md5((texts[_i], new_info[_i]))
+                d[new_mid] = _uid
+                del d[old_mid]
+
+                updated_ids.append(_uid)
+                updated_info.append(new_info[_i])
+
+        with _db(get_table_name(tenant, index_name, partition)) as d:
+            for _i, _uid in enumerate(updated_ids):
+                d[_uid] = updated_info[_i]
 
         logs.add(log_id, logs.fn_name(), f'Finish updating info for "{index_name}({partition})" (tenant: {tenant})')
 
 
-def process_info(info: List[Any], length: int, partition: str = ''):
+def _db(table_name: str = None):
+    """ 使用 sqlite 作为缓存 """
+    return SqliteDict(os.path.join(SQLITE_DIR, f'{table_name}.sqlite'), tablename=table_name, autocommit=True)
+
+
+def process_info(info: List[Any], length: int, partition: str = '') -> List[dict]:
     info = info if info else [''] * length
     for _i, _v in enumerate(info):
         if not isinstance(_v, dict):
@@ -615,58 +646,27 @@ def get_md5_table(tenant: str, index_name: str, partition: str = '', id_type='IV
     return get_table_name(tenant, index_name, partition) + f'____md5_{id_type}'
 
 
-def _get_uid_thread(_queue: Queue, table_name: str, d_mid_2_uid: Dict[int, int]):
-    while not _queue.empty():
-        mid = _queue.get()
-
-        _uid = redis_get(mid, table_name)
-        if not _uid:
-            _uid = uid()
-            redis_save(mid, _uid, table_name)
-
-        d_mid_2_uid[mid] = int(_uid)
-
-
-def get_uids(
-        tenant: str,
-        index_name: str,
-        texts: Union[np.ndarray, List[Any]],
-        info: List[Any] = None,
-        partition: str = '',
-        id_queue: Queue = None,
-        num_thread=15) -> List[int]:
-    """ 并发获取 uid """
+def get_uids(tenant: str,
+             index_name: str,
+             texts: Union[np.ndarray, List[Any]],
+             info: List[Any] = None,
+             partition: str = '',
+             id_queue: Queue = None, ) -> List[int]:
     table_name = get_md5_table(tenant, index_name, partition, 'IVF' if id_queue is None else 'Flat')
 
     info = [''] * len(texts) if not info else info
     md5_ids = list(map(md5, zip(texts, info)))
 
-    if id_queue is not None:
-        ids = []
+    ids = []
+    with _db(table_name) as d:
         for mid in md5_ids:
-            _uid = redis_get(mid, table_name)
-            if not _uid:
-                _uid = id_queue.get()
-                redis_save(mid, _uid, table_name)
-            ids.append(int(_uid))
-        return ids
-
-    _queue = Queue()
-    for mid in md5_ids:
-        _queue.put(mid)
-
-    d_mid_2_uid: Dict[int, int] = {}
-
-    pool = []
-    for thread_id in range(num_thread):
-        thread = threading.Thread(target=_get_uid_thread, args=(_queue, table_name, d_mid_2_uid))
-        thread.start()
-        pool.append(thread)
-
-    for thread in pool:
-        thread.join()
-
-    return [d_mid_2_uid[mid] for mid in md5_ids]
+            if mid not in d:
+                _uid = uid() if id_queue is None else id_queue.get()
+                ids.append(_uid)
+                d[mid] = _uid
+            else:
+                ids.append(d[mid])
+    return ids
 
 
 def filter_duplicate(tenant: str, index_name: str, ids: List[int], partition: str = '') -> List[int]:
@@ -674,9 +674,8 @@ def filter_duplicate(tenant: str, index_name: str, ids: List[int], partition: st
     if not ids:
         return []
 
-    table_name = get_table_name(tenant, index_name, partition)
-    rets = redis_batch_exist(ids, table_name)
-    return [i for i, ret in enumerate(rets) if not ret]
+    with _db(get_table_name(tenant, index_name, partition)) as d:
+        return list(filter(lambda i: ids[i] not in d, range(len(ids))))
 
 
 def get_metric(metric_type: int):

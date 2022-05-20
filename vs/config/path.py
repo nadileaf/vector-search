@@ -14,6 +14,9 @@ if not os.path.exists(DATA_ROOT):
 # 索引的目录
 INDEX_DIR = os.path.join(DATA_ROOT, 'index')
 
+# 索引的目录
+SQLITE_DIR = os.path.join(DATA_ROOT, 'sqlite')
+
 # 日志的目录
 LOG_DIR = os.path.join(DATA_ROOT, 'logs')
 
@@ -28,7 +31,7 @@ for dir_name in DATA_ROOT.split(r'/'):
         os.mkdir(_root)
 
 # 创建目录
-for _dir_path in [INDEX_DIR, LOG_DIR]:
+for _dir_path in [INDEX_DIR, LOG_DIR, SQLITE_DIR]:
     if not os.path.exists(_dir_path):
         os.mkdir(_dir_path)
 
