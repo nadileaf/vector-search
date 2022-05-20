@@ -2,7 +2,7 @@ import time
 from functools import wraps
 from pydantic import BaseModel
 from fastapi import FastAPI
-from lib import logs
+from vs.lib import logs
 
 app = FastAPI()
 

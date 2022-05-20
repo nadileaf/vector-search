@@ -2,9 +2,9 @@ import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
 from typing import Optional, List, Union
-from interfaces.base import app, log
-from interfaces.definitions.common import Response
-from core.db import o_faiss
+from vs.interfaces.base import app, log
+from vs.interfaces.definitions.common import Response
+from vs.core.db import o_faiss
 
 # 用于缓存数据
 d_key_2_vectors = {}
@@ -72,7 +72,7 @@ def index_train_batch(_input: VectorInput, tenant: Optional[str] = Header('_test
 
 if __name__ == '__main__':
     # 测试代码
-    from interfaces.index.index_create import index_create
+    from vs.interfaces.index.index_create import index_create
 
     index_create('test', 384, '')
     index_train_batch(VectorInput(

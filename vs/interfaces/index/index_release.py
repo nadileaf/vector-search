@@ -1,8 +1,8 @@
 from fastapi import Query, Header
 from typing import Optional, Union
-from interfaces.base import app, log
-from interfaces.definitions.common import Response
-from core.db import o_faiss
+from vs.interfaces.base import app, log
+from vs.interfaces.definitions.common import Response
+from vs.core.db import o_faiss
 
 
 @app.get('/v1/index/release',
@@ -39,8 +39,8 @@ def index_release(
 if __name__ == '__main__':
     # 测试代码
     import numpy as np
-    from interfaces.index.index_load import index_load
-    from interfaces.index.index_search import index_search, SearchInput
+    from vs.interfaces.index.index_load import index_load
+    from vs.interfaces.index.index_search import index_search, SearchInput
 
     index_load('test', '')
 

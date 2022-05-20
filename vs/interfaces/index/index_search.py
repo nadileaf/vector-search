@@ -4,9 +4,9 @@ import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
 from typing import Optional, List, Any, Union
-from interfaces.base import app, log
-from interfaces.definitions.common import Response
-from core.db import o_faiss
+from vs.interfaces.base import app, log
+from vs.interfaces.definitions.common import Response
+from vs.core.db import o_faiss
 
 
 class SearchInput(BaseModel):
@@ -54,9 +54,9 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
 
 if __name__ == '__main__':
     # 测试代码
-    from interfaces.index.index_create import index_create
-    from interfaces.index.index_train import index_train, TrainVectorInput
-    from interfaces.index.index_add_vectors import index_add_vectors, VectorInput
+    from vs.interfaces.index.index_create import index_create
+    from vs.interfaces.index.index_train import index_train, TrainVectorInput
+    from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 
     index_create('test', 384, '', 1000)
 

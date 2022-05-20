@@ -8,9 +8,9 @@ from sqlitedict import SqliteDict
 from typing import List, Union, Any
 from six.moves import cPickle as pickle
 from sklearn.metrics.pairwise import cosine_similarity
-from config.path import INDEX_DIR, SQLITE_DIR
-from lib.utils import md5, uid, get_relative_file
-from lib import logs
+from vs.config.path import INDEX_DIR, SQLITE_DIR
+from vs.lib.utils import md5, uid, get_relative_file
+from vs.lib import logs
 
 
 class Faiss:
@@ -623,7 +623,7 @@ def get_nlist(count: int):
     elif count <= 50000:
         return int(math.sqrt(count) * 2)
     else:
-        return int(math.sqrt(count) * 2.5)
+        return min(int(math.sqrt(count) * 2.5), 2048)
 
 
 def get_index(count: int, dim: int):

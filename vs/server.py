@@ -6,26 +6,26 @@ from fastapi.middleware.cors import CORSMiddleware
 _cur_dir = os.path.split(os.path.abspath(__file__))[0]
 sys.path.append(_cur_dir)
 
-from lib import logs
+from vs.lib import logs
 
 logs.MODULE = 'vector-search'
 logs.PROCESS = 'server'
 
-from config.env import ENV, DEV
-from interfaces.base import app
-from interfaces.index import index_add_vectors
-from interfaces.index import index_create
-from interfaces.index import index_load
-from interfaces.index import index_release
-from interfaces.index import index_save
-from interfaces.index import index_search
-from interfaces.index import index_train
-from interfaces.index import index_exist
-from interfaces.index import index_list
-from interfaces.index import index_train_batch
-from interfaces.index import index_delete_with_info
-from interfaces.index import index_delete_with_ids
-from interfaces.index import index_update_with_info
+from vs.config.env import ENV, DEV
+from vs.interfaces.base import app
+from vs.interfaces.index import index_add_vectors
+from vs.interfaces.index import index_create
+from vs.interfaces.index import index_load
+from vs.interfaces.index import index_release
+from vs.interfaces.index import index_save
+from vs.interfaces.index import index_search
+from vs.interfaces.index import index_train
+from vs.interfaces.index import index_exist
+from vs.interfaces.index import index_list
+from vs.interfaces.index import index_train_batch
+from vs.interfaces.index import index_delete_with_info
+from vs.interfaces.index import index_delete_with_ids
+from vs.interfaces.index import index_update_with_info
 
 sys.path.pop()
 

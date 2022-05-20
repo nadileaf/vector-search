@@ -2,8 +2,8 @@ import os
 import sys
 import time
 import inspect
-from lib import utils
-from config.path import LOG_DIR
+from vs.lib import utils
+from vs.config.path import LOG_DIR
 
 LOG = []
 

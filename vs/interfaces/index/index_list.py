@@ -2,10 +2,10 @@ import os
 from pydantic import Field
 from fastapi import Header
 from typing import Optional, Union
-from interfaces.base import app, log
-from interfaces.definitions.common import Response
-from core.db import o_faiss, get_metric, get_index_type
-from config.path import INDEX_DIR
+from vs.interfaces.base import app, log
+from vs.interfaces.definitions.common import Response
+from vs.core.db import o_faiss, get_metric, get_index_type
+from vs.config.path import INDEX_DIR
 
 
 class IndicesResponse(Response):

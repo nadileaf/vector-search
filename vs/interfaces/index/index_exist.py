@@ -1,9 +1,9 @@
 from pydantic import Field
 from fastapi import Query, Header
 from typing import Optional, Union
-from interfaces.base import app, log
-from interfaces.definitions.common import Response
-from core.db import o_faiss
+from vs.interfaces.base import app, log
+from vs.interfaces.definitions.common import Response
+from vs.core.db import o_faiss
 
 
 class ExistResponse(Response):
