@@ -30,7 +30,7 @@ from interfaces.index import index_update_with_info
 sys.path.pop()
 
 
-def run():
+def server_run():
     app.add_middleware(
         CORSMiddleware,
         allow_origins=['*'],
@@ -42,4 +42,4 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    server_run()

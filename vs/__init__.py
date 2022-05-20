@@ -18,7 +18,7 @@ from interfaces.index.index_release import index_release
 from interfaces.index.index_save import index_save
 from interfaces.index.index_search import index_search, SearchInput
 from interfaces.index.index_train import index_train, TrainVectorInput
-from server import run
+from server import server_run
 
 sys.path.pop()
 
