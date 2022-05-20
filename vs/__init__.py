@@ -10,6 +10,7 @@ from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 from vs.interfaces.index.index_create import index_create
 from vs.interfaces.index.index_delete_with_ids import index_delete_with_ids, IdsInput
 from vs.interfaces.index.index_delete_with_info import index_delete_with_info, InfoInput
+from vs.interfaces.index.index_update_with_info import index_update_with_info, UpdateInfoInput
 from vs.interfaces.index.index_exist import index_exist
 from vs.interfaces.index.index_list import index_list
 from vs.interfaces.index.index_load import index_load
@@ -88,6 +89,24 @@ def delete_with_info(index_name: str,
         vectors=vectors,
         texts=texts,
         info=info,
+        partition=partition
+    ), tenant=tenant, log_id=log_id)
+
+
+def update_with_info(index_name: str,
+                     vectors: List[List[float]],
+                     texts: List[str],
+                     old_info: List[Any] = None,
+                     new_info: List[Any] = None,
+                     partition: str = '',
+                     tenant: str = '_test',
+                     log_id: int = None):
+    return index_update_with_info(UpdateInfoInput(
+        index_name=index_name,
+        vectors=vectors,
+        texts=texts,
+        old_info=old_info,
+        new_info=new_info,
         partition=partition
     ), tenant=tenant, log_id=log_id)
 

@@ -520,6 +520,39 @@ class Faiss:
 
         self.delete_with_id(ids, tenant, index_name, partition, log_id)
 
+    def update_with_info(self,
+                         tenant: str,
+                         index_name: str,
+                         vectors: np.ndarray,
+                         texts: List[Any] = None,
+                         old_info: List[dict] = None,
+                         new_info: List[dict] = None,
+                         partition: str = '',
+                         log_id: Union[str, int] = 'Faiss'):
+        logs.add(log_id, logs.fn_name(), f'Start updating info for "{index_name}({partition})" (tenant: {tenant}) ...')
+
+        partition = partition if partition else self.DEFAULT
+
+        index = self.index(tenant, index_name, partition)
+        index_type = get_index_type(index)
+
+        # 预处理 info
+        old_info = process_info(old_info, len(vectors), partition)
+        new_info = process_info(new_info, len(vectors), partition)
+
+        table_name = get_md5_table(tenant, index_name, partition, 'Flat' if index_type.startswith('Flat') else 'IVF')
+
+        old_md5_ids = list(map(md5, zip(texts if texts else vectors, old_info)))
+        ids = redis_batch_get(old_md5_ids, table_name)
+
+        new_md5_ids = list(map(md5, zip(texts if texts else vectors, new_info)))
+        redis_batch_save(new_md5_ids, ids, table_name)
+        redis_del(old_md5_ids, table_name)
+
+        redis_batch_save(ids, new_info, table_name=get_table_name(tenant, index_name, partition))
+
+        logs.add(log_id, logs.fn_name(), f'Finish updating info for "{index_name}({partition})" (tenant: {tenant})')
+
 
 def process_info(info: List[Any], length: int, partition: str = ''):
     info = info if info else [''] * length
