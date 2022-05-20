@@ -5,19 +5,20 @@ from typing import List, Any
 _cur_dir = os.path.split(os.path.abspath(__file__))[0]
 sys.path.append(_cur_dir)
 
-from vs.core.db import o_faiss
-from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput, Header
-from vs.interfaces.index.index_create import index_create
-from vs.interfaces.index.index_delete_with_ids import index_delete_with_ids, IdsInput
-from vs.interfaces.index.index_delete_with_info import index_delete_with_info, InfoInput
-from vs.interfaces.index.index_update_with_info import index_update_with_info, UpdateInfoInput
-from vs.interfaces.index.index_exist import index_exist
-from vs.interfaces.index.index_list import index_list
-from vs.interfaces.index.index_load import index_load
-from vs.interfaces.index.index_release import index_release
-from vs.interfaces.index.index_save import index_save
-from vs.interfaces.index.index_search import index_search, SearchInput
-from vs.interfaces.index.index_train import index_train, TrainVectorInput
+from core.db import o_faiss
+from interfaces.index.index_add_vectors import index_add_vectors, VectorInput, Header
+from interfaces.index.index_create import index_create
+from interfaces.index.index_delete_with_ids import index_delete_with_ids, IdsInput
+from interfaces.index.index_delete_with_info import index_delete_with_info, InfoInput
+from interfaces.index.index_update_with_info import index_update_with_info, UpdateInfoInput
+from interfaces.index.index_exist import index_exist
+from interfaces.index.index_list import index_list
+from interfaces.index.index_load import index_load
+from interfaces.index.index_release import index_release
+from interfaces.index.index_save import index_save
+from interfaces.index.index_search import index_search, SearchInput
+from interfaces.index.index_train import index_train, TrainVectorInput
+from server import run
 
 sys.path.pop()
 

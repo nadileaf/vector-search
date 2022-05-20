@@ -2,9 +2,9 @@ import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
 from typing import Optional, List, Any, Union
-from vs.interfaces.base import app, log
-from vs.interfaces.definitions.common import Response
-from vs.core.db import o_faiss
+from interfaces.base import app, log
+from interfaces.definitions.common import Response
+from core.db import o_faiss
 
 
 class VectorInput(BaseModel):
@@ -70,8 +70,8 @@ def index_add_vectors(_input: VectorInput, tenant: Optional[str] = Header('_test
 
 if __name__ == '__main__':
     # 测试代码
-    from vs.interfaces.index.index_create import index_create
-    from vs.interfaces.index.index_train import index_train, TrainVectorInput
+    from interfaces.index.index_create import index_create
+    from interfaces.index.index_train import index_train, TrainVectorInput
 
     index_create('test', 384, '', 200)
 

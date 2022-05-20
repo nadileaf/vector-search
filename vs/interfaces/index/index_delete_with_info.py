@@ -2,9 +2,9 @@ import numpy as np
 from pydantic import BaseModel, Field
 from fastapi import Header
 from typing import Optional, List, Any, Union
-from vs.interfaces.base import app, log
-from vs.interfaces.definitions.common import Response
-from vs.core.db import o_faiss
+from interfaces.base import app, log
+from interfaces.definitions.common import Response
+from core.db import o_faiss
 
 
 class InfoInput(BaseModel):
@@ -42,10 +42,10 @@ def index_delete_with_info(_input: InfoInput, tenant: Optional[str] = Header('_t
 
 if __name__ == '__main__':
     # 测试代码
-    from vs.interfaces.index.index_create import index_create
-    from vs.interfaces.index.index_train import index_train
-    from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput
-    from vs.interfaces.index.index_search import index_search, SearchInput
+    from interfaces.index.index_create import index_create
+    from interfaces.index.index_train import index_train
+    from interfaces.index.index_add_vectors import index_add_vectors, VectorInput
+    from interfaces.index.index_search import index_search, SearchInput
 
     index_create('test11', 384, '', 2000)
 

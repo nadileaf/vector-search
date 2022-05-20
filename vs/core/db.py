@@ -8,9 +8,9 @@ from sqlitedict import SqliteDict
 from typing import List, Union, Any
 from six.moves import cPickle as pickle
 from sklearn.metrics.pairwise import cosine_similarity
-from vs.config.path import INDEX_DIR, SQLITE_DIR
-from vs.lib.utils import md5, uid, get_relative_file
-from vs.lib import logs
+from config.path import INDEX_DIR, SQLITE_DIR
+from lib.utils import md5, uid, get_relative_file
+from lib import logs
 
 
 class Faiss:
