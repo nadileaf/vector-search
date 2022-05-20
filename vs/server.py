@@ -30,7 +30,7 @@ from interfaces.index import index_update_with_info
 sys.path.pop()
 
 
-def server_run():
+def server_run(port: int = None):
     app.add_middleware(
         CORSMiddleware,
         allow_origins=['*'],
@@ -38,7 +38,8 @@ def server_run():
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    uvicorn.run(app, host='0.0.0.0', port=80 if ENV != DEV else 333)
+    port = port if port else (80 if ENV != DEV else 333)
+    uvicorn.run(app, host='0.0.0.0', port=port)
 
 
 if __name__ == '__main__':
