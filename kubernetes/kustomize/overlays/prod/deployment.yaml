@@ -19,15 +19,11 @@ spec:
         mesoor.com/component: ml-cpu
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vs:cpu-1.0.2
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.4-py38-prod
           imagePullPolicy: Always
           env:
           - name: MY_DEV_ENV
             value: "product"
-          - name: REDIS_HOST
-            value: "text2sql-redis"
-          - name: REDIS_PORT
-            value: "6379"
 
           resources:
             requests:
@@ -45,7 +41,7 @@ spec:
             - bash
             - -c
             - |
-              python /code/vector-search/server.py > /data/server.log 2>&1
+              python /code/vector-search/vs/server.py >> /data/server.log 2>&1
 
       imagePullSecrets:
         - name: harbor-pull-secret
