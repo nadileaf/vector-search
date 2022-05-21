@@ -19,7 +19,7 @@ spec:
         mesoor.com/component: ml-cpu
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.0-test
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.2-test
           imagePullPolicy: Always
           env:
           - name: MY_DEV_ENV
