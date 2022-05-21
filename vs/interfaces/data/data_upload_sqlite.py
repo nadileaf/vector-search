@@ -7,6 +7,7 @@ from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.lib.utils import get_relative_file, get_relative_dir
 from vs.config.path import TMP_DIR, SQLITE_DIR
+from vs.core.db import o_faiss
 
 
 @app.post('/v1/data/upload_sqlite',
@@ -15,13 +16,10 @@ from vs.config.path import TMP_DIR, SQLITE_DIR
           description="上传数据")
 @log
 def data_upload_sqlite(
-        sqlite_file: UploadFile = File(..., description="上传的源数据的文件"),
+        sqlite_file: UploadFile = File(..., description="数据的zip文件"),
         tenant: Optional[str] = Header('_test'),
         log_id: Union[int, str] = None
 ):
-    if not zipfile.is_zipfile(sqlite_file.file):
-        return {'code': 0, 'msg': f'上传的文件类型必须是 zip'}
-
     # 获取文件名
     sqlite_file_name = sqlite_file.filename
 
@@ -32,6 +30,10 @@ def data_upload_sqlite(
     sqlite_file_path = get_relative_file('sqlite', tenant, sqlite_file_name, root=TMP_DIR)
     with open(sqlite_file_path, 'wb') as f:
         f.write(sqlite_original_content)
+
+    if not zipfile.is_zipfile(sqlite_file_path):
+        os.remove(sqlite_file_path)
+        return {'code': 0, 'msg': f'上传的文件类型必须是 zip'}
 
     sqlite_tar_dir = get_relative_dir('sqlite', tenant, os.path.splitext(sqlite_file_name)[0], root=TMP_DIR)
     sqlite_zip_file = zipfile.ZipFile(sqlite_file_path)

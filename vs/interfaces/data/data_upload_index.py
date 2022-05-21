@@ -15,13 +15,10 @@ from vs.config.path import TMP_DIR, INDEX_DIR
           description="上传数据")
 @log
 def data_upload_index(
+        index_file: UploadFile = File(..., description="索引的zip文件"),
         tenant: Optional[str] = Header('_test'),
-        index_file: UploadFile = File(..., description="上传的源数据的文件"),
         log_id: Union[int, str] = None
 ):
-    if not zipfile.is_zipfile(index_file.file):
-        return {'code': 0, 'msg': f'上传的文件类型必须是 zip'}
-
     # 获取文件名
     index_file_name = index_file.filename
 
@@ -32,6 +29,10 @@ def data_upload_index(
     index_file_path = get_relative_file('index', tenant, index_file_name, root=TMP_DIR)
     with open(index_file_path, 'wb') as f:
         f.write(index_original_content)
+
+    if not zipfile.is_zipfile(index_file_path):
+        os.remove(index_file_path)
+        return {'code': 0, 'msg': f'上传的文件类型必须是 zip'}
 
     index_tar_dir = get_relative_dir('index', tenant, os.path.splitext(index_file_name)[0], root=TMP_DIR)
     # index_tar_dir = os.path.join(TMP_DIR, 'index', tenant, os.path.splitext(index_file_name)[0])
