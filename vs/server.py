@@ -25,7 +25,8 @@ from vs.interfaces.index import index_train_batch
 from vs.interfaces.index import index_delete_with_info
 from vs.interfaces.index import index_delete_with_ids
 from vs.interfaces.index import index_update_with_info
-from vs.interfaces.data import data_upload
+from vs.interfaces.data import data_upload_sqlite
+from vs.interfaces.data import data_upload_index
 
 sys.path.pop()
 
@@ -38,7 +39,7 @@ def server_run(port: int = None):
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    port = port if port else 80
+    port = port if port else 800
     uvicorn.run(app, host='0.0.0.0', port=port)
 
 
