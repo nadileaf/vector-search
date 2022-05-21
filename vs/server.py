@@ -11,7 +11,6 @@ from vs.lib import logs
 logs.MODULE = 'vector-search'
 logs.PROCESS = 'server'
 
-from vs.config.env import ENV, DEV
 from vs.interfaces.base import app
 from vs.interfaces.index import index_add_vectors
 from vs.interfaces.index import index_create
@@ -26,6 +25,7 @@ from vs.interfaces.index import index_train_batch
 from vs.interfaces.index import index_delete_with_info
 from vs.interfaces.index import index_delete_with_ids
 from vs.interfaces.index import index_update_with_info
+from vs.interfaces.data import data_upload
 
 sys.path.pop()
 
@@ -38,7 +38,7 @@ def server_run(port: int = None):
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    port = port if port else (80 if ENV != DEV else 333)
+    port = port if port else 80
     uvicorn.run(app, host='0.0.0.0', port=port)
 
 
