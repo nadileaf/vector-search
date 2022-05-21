@@ -9,14 +9,14 @@ from vs.lib.utils import get_relative_file, get_relative_dir
 from vs.config.path import TMP_DIR, INDEX_DIR
 
 
-@app.post('/v1/data/upload',
-          name="v1 data upload",
+@app.post('/v1/data/upload_index',
+          name="v1 data upload index",
           response_model=Response,
           description="上传数据")
 @log
-def data_upload(
-        index_file: UploadFile = File(..., description="上传的源数据的文件"),
+def data_upload_index(
         tenant: Optional[str] = Header('_test'),
+        index_file: UploadFile = File(..., description="上传的源数据的文件"),
         log_id: Union[int, str] = None
 ):
     if not zipfile.is_zipfile(index_file.file):
@@ -33,7 +33,8 @@ def data_upload(
     with open(index_file_path, 'wb') as f:
         f.write(index_original_content)
 
-    index_tar_dir = get_relative_dir(tenant, 'index', root=TMP_DIR)
+    index_tar_dir = get_relative_dir('index', tenant, os.path.splitext(index_file_name)[0], root=TMP_DIR)
+    # index_tar_dir = os.path.join(TMP_DIR, 'index', tenant, os.path.splitext(index_file_name)[0])
     index_zip_file = zipfile.ZipFile(index_file_path)
     for file_name in index_zip_file.namelist():
         if not file_name.endswith('.index') and not file_name.endswith('.pkl'):

@@ -4,7 +4,8 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 
 _cur_dir = os.path.split(os.path.abspath(__file__))[0]
-sys.path.append(_cur_dir)
+_root_dir = os.path.split(_cur_dir)[0]
+sys.path.append(_root_dir)
 
 from vs.lib import logs
 

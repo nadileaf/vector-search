@@ -33,7 +33,7 @@ def data_upload_sqlite(
     with open(sqlite_file_path, 'wb') as f:
         f.write(sqlite_original_content)
 
-    sqlite_tar_dir = get_relative_dir(tenant, 'sqlite', root=TMP_DIR)
+    sqlite_tar_dir = get_relative_dir('sqlite', tenant, os.path.splitext(sqlite_file_name)[0], root=TMP_DIR)
     sqlite_zip_file = zipfile.ZipFile(sqlite_file_path)
     for file_name in sqlite_zip_file.namelist():
         if not file_name.endswith('.sqlite'):
