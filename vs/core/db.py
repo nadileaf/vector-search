@@ -476,7 +476,7 @@ class Faiss:
                 new_result.append({
                     'data': data,
                     'score': combine_avg_score(avg_similarity, val['score']),
-                    'mv_score': avg_similarity,
+                    'mv_score': float(avg_similarity),
                 })
 
             new_result.sort(key=lambda x: (-x['score'], -x['mv_score']))
