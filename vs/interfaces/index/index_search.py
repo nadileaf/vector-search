@@ -21,6 +21,7 @@ class SearchInput(BaseModel):
 class Result(BaseModel):
     data: Any = Field(description='插入成功的数量')
     score: float = Field(0, description='该结果的 相似度 或 score')
+    mv_score: Optional[float] = Field(0, description="滑动平均向量计算得出的 score")
 
 
 class SearchResponse(Response):
@@ -58,11 +59,19 @@ if __name__ == '__main__':
     from vs.interfaces.index.index_train import index_train, TrainVectorInput
     from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 
-    index_create('test', 384, '', 1000)
+    index_create('test', 384, 'aaa', 1000)
+    index_create('test', 384, 'bbb', 1000)
 
     index_train(TrainVectorInput(
         index_name='test',
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
+        partition='aaa',
+    ))
+
+    index_train(TrainVectorInput(
+        index_name='test',
+        vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
+        partition='bbb',
     ))
 
     index_add_vectors(VectorInput(
@@ -70,6 +79,14 @@ if __name__ == '__main__':
         texts=[f'{i}' for i in range(200)],
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
         info=[{'value': i} for i in range(0, 200)],
+        partition='aaa',
+    ))
+    index_add_vectors(VectorInput(
+        index_name='test',
+        texts=[f'{i}' for i in range(200)],
+        vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
+        info=[{'value': i} for i in range(0, 200)],
+        partition='bbb',
     ))
 
     a = np.zeros([3, 384])
@@ -93,9 +110,10 @@ if __name__ == '__main__':
     # ))
 
     ret = index_search(SearchInput(
-        index_names=['test'],
+        index_names=['test', 'test'],
         vectors=list(map(lambda l: list(map(float, l)), a)),
         top_k=4,
+        partitions=['aaa', 'bbb'],
         use_mv=False
     ))
 

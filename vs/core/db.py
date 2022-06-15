@@ -473,9 +473,13 @@ class Faiss:
                     tmp_avg_ret = tmp_avg_result[val['table_name']]
                     avg_similarity = tmp_avg_ret[_partition] if _partition in tmp_avg_ret else 0.
 
-                new_result.append({'data': data, 'score': combine_avg_score(avg_similarity, val['score'])})
+                new_result.append({
+                    'data': data,
+                    'score': combine_avg_score(avg_similarity, val['score']),
+                    'mv_score': avg_similarity,
+                })
 
-            new_result.sort(key=lambda x: -x['score'])
+            new_result.sort(key=lambda x: (-x['score'], -x['mv_score']))
 
             d_new_result = {}
             for v in new_result:
