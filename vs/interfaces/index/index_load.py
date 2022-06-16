@@ -28,7 +28,7 @@ def index_load(
         o_faiss.load(tenant, log_id)
 
     else:
-        _ret = o_faiss.load_one(tenant, index_name, partition, log_id)
+        _ret = o_faiss.load_one(tenant, index_name, partition, log_id=log_id)
 
     msg = 'Successfully' if _ret else 'Fail'
     msg = f'{msg} loading index "{index_name}({partition})" (tenant: "{tenant}")'

@@ -33,17 +33,13 @@ class Faiss:
         partition = partition if partition else self.DEFAULT
         return self.indices[tenant][index_name][partition]
 
-    def train(self, tenant: str, index_name: str, vectors: np.ndarray, partition: str = '',
-              log_id: Union[str, int] = 'Faiss'):
+    @logs.log
+    def train(self, tenant: str, index_name: str, vectors: np.ndarray, partition: str = '', log_id=None):
         index = self.index(tenant, index_name, partition)
         if index is not None:
-            logs.add(log_id, 'train', f'start training index "{index_name}({partition})" '
-                                      f'(len: {len(vectors)}, tenant: {tenant})')
-            s_time = time.time()
             index.train(vectors)
-            logs.add(log_id, 'train', f'finish training index "{index_name}({partition})" '
-                                      f'(use time: {time.time() - s_time:.4f}s, tenant: {tenant})')
 
+    @logs.log
     def add(self,
             tenant: str,
             index_name: str,
@@ -53,7 +49,7 @@ class Faiss:
             partition: str = '',
             filter_exist=False,
             add_default=False,
-            log_id: Union[str, int] = 'Faiss') -> dict:
+            log_id=None) -> dict:
         """ 插入数据到 index，返回 插入成功的数量 insert_count """
 
         origin_len = len(vectors)
@@ -62,13 +58,8 @@ class Faiss:
         index = self.index(tenant, index_name, partition)
         index_type = get_index_type(index)
 
-        log_name = f'{index_name}({partition}) (tenant: {tenant})'
-        logs.add(log_id, 'add', f'start inserting data (len: {origin_len}) to "{log_name}" ...')
-
         # 预处理 info
         info = process_info(info, len(vectors), partition)
-
-        origin_s_time = s_time = time.time()
 
         if not filter_exist and index_type.startswith('Flat'):
             ids = list(range(index.ntotal, index.ntotal + origin_len))
@@ -92,20 +83,14 @@ class Faiss:
                 id_queue = None
 
             # 获取数据的 id
-            ids = get_uids(tenant, index_name, texts if texts else vectors, info, partition, id_queue)
+            ids = get_uids(tenant, index_name, texts if texts else vectors, info, partition, id_queue, log_id=log_id)
 
         filter_ids = ids
 
-        logs.add(log_id, 'add', f'finish getting uids '
-                                f'(len: {len(ids)}, use_time: {time.time() - s_time:.4f}s) for "{log_name}"')
-
         # 过滤重复数据
         if filter_exist:
-            s_time = time.time()
-
-            filter_indices = filter_duplicate(tenant, index_name, ids, partition)
+            filter_indices = filter_duplicate(tenant, index_name, ids, partition, log_id=log_id)
             if not filter_indices:
-                logs.add('Faiss', 'add', f'all data is existed, insert (len: 0/0/{origin_len}) to "{log_name}"')
                 return {'count': 0, 'exist_count': origin_len, 'ids': ids}
 
             # 根据 filter_indices 取 不重复 的 数据
@@ -113,24 +98,14 @@ class Faiss:
             info = [info[i] for i in filter_indices]
             vectors = vectors[filter_indices]
 
-            logs.add(log_id, 'add', f'finish filtering duplicate vectors for {log_name} '
-                                    f'(left: {len(filter_ids)}, use_time: {time.time() - s_time:.4f}s) ')
-
-        s_time = time.time()
-
         # 添加 到 index
         if index_type.startswith('Flat'):
             index.add(vectors)
         else:
             index.add_with_ids(vectors, np.array(filter_ids))
 
-        logs.add(log_id, 'add', f'finish adding data to index (len: {len(filter_ids)}/{origin_len}) "{log_name},'
-                                f' use time: {time.time() - s_time:.4f}s)"')
-
         # 若有 partition，记录该 partition 的滑动平均向量
         if partition and partition != self.DEFAULT:
-            s_time = time.time()
-
             if tenant not in self.mv_indices:
                 self.mv_indices[tenant] = {}
             if index_name not in self.mv_indices[tenant]:
@@ -156,32 +131,20 @@ class Faiss:
 
                 self.mv_indices[tenant][index_name][partition] = {'vector': avg_embedding, 'count': count}
 
-            logs.add(log_id, 'add', f'finish updating moving average index "{log_name}" '
-                                    f'(use_time: {time.time() - s_time:.4f}s)')
-
         if add_default and partition and partition != self.DEFAULT:
             self.add(tenant, index_name, vectors, texts, info, self.DEFAULT, filter_exist, log_id=log_id)
-
-        s_time = time.time()
 
         # 添加 具体 info 到 db
         with _db(get_table_name(tenant, index_name, partition)) as d:
             for _i, _id in enumerate(filter_ids):
                 d[_id] = info[_i]
 
-        logs.add(log_id, 'add', f'finish inserting data (len: {len(filter_ids)}/{origin_len}, '
-                                f'save_info time: {time.time() - s_time:.4f}s, '
-                                f'total time: {time.time() - origin_s_time:.4f}s) to "{log_name}"')
         return {'count': origin_len, 'exist_count': origin_len - len(filter_ids), 'ids': ids}
 
-    def save_one(self, tenant: str, index_name: str, partition: str = '', log_id: Union[str, int] = 'Faiss') -> int:
-        logs.add(log_id, 'save_one', f'Start saving index "{index_name}({partition})" (tenant: {tenant}) ... ')
-        s_time = time.time()
-
+    @logs.log
+    def save_one(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
         _index = self.index(tenant, index_name, partition)
         if _index is None:
-            logs.add(log_id, 'save_one', f'Index "{index_name}({partition})" (tenant: {tenant}) is not existed',
-                     _level=logs.LEVEL_WARNING)
             return 0
 
         if not partition:
@@ -201,50 +164,24 @@ class Faiss:
             index_path = get_relative_file(tenant, index_name, f'{partition}.index', root=INDEX_DIR)
             faiss.write_index(_index, index_path)
 
-        logs.add(log_id, 'save_one', f'Successfully saving index "{index_name}({partition})" '
-                                     f'(use_time: {time.time() - s_time:.4f}s, tenant: {tenant})')
         return 1
 
-    def save(self, tenant: str, log_id: Union[str, int] = 'Faiss'):
+    @logs.log
+    def save(self, tenant: str, log_id=None):
         """ 保存当前的所有索引到文件里 """
-        logs.add(log_id, 'save', f'Start saving all indices ... ')
-        s_time = time.time()
-
         if tenant not in self.indices:
             logs.add(log_id, 'save', f'tenant "{tenant}" 没有索引')
             return
 
         for index_name, index in self.indices[tenant].items():
-            logs.add(log_id, 'save', f'Start saving index "{index_name}" (tenant: {tenant}) ... ')
-            s_time2 = time.time()
+            self.save_one(tenant, index_name, log_id=log_id)
 
-            for partition, _index in index.items():
-                if _index is None:
-                    continue
-
-                index_path = get_relative_file(tenant, index_name, f'{partition}.index', root=INDEX_DIR)
-                faiss.write_index(_index, index_path)
-
-            if tenant in self.mv_indices and index_name in self.mv_indices[tenant] and \
-                    self.mv_indices[tenant][index_name] is not None:
-                with open(get_relative_file(tenant, index_name, 'mv_index.pkl', root=INDEX_DIR), 'wb') as f:
-                    pickle.dump(self.mv_indices[tenant][index_name], f)
-
-            logs.add(log_id, 'save', f'Finish saving index "{index_name}" '
-                                     f'(use time: {time.time() - s_time2:.4f}s, tenant: {tenant})')
-
-        logs.add(log_id, 'save', f'Finish saving all indices (use time: {time.time() - s_time:.4f}s)')
-
-    def load_one(self, tenant: str, index_name: str, partition: str = '', log_id: Union[str, int] = 'Faiss') -> int:
-        logs.add(log_id, 'load_one', f'Start loading index "{index_name}({partition})" ...')
-        s_time = time.time()
-
+    @logs.log
+    def load_one(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
         if not partition:
             index_dir = os.path.join(INDEX_DIR, tenant, index_name)
             if not os.path.isdir(index_dir) or not os.listdir(index_dir):
                 return 0
-
-            logs.add(log_id, 'load_one', f'loading index "{index_name}" (tenant: {tenant}) ... ')
 
             if tenant not in self.indices:
                 self.indices[tenant] = {}
@@ -287,15 +224,11 @@ class Faiss:
             if self.index(tenant, index_name, partition) is None:
                 self.indices[tenant][index_name][partition] = faiss.read_index(index_path)
 
-        logs.add(log_id, 'load_one', f'Successfully loading index "{index_name}({partition})" '
-                                     f'(use time: {time.time() - s_time:.4f}s, tenant: {tenant})')
         return 1
 
-    def load(self, tenant: str, log_id: Union[str, int] = 'Faiss'):
+    @logs.log
+    def load(self, tenant: str, log_id=None):
         """ 从文件中加载索引 """
-        logs.add(log_id, 'load', f'Start loading all indices (tenant: "{tenant}") ... ')
-        s_time = time.time()
-
         for _tenant in os.listdir(INDEX_DIR):
             if tenant not in ['*', _tenant]:
                 continue
@@ -304,58 +237,15 @@ class Faiss:
             if not os.path.isdir(_tenant_dir):
                 continue
 
-            if _tenant not in self.indices:
-                self.indices[_tenant] = {}
-            if _tenant not in self.mv_indices:
-                self.mv_indices[_tenant] = {}
-
             for index_name in os.listdir(_tenant_dir):
-                index_dir = os.path.join(_tenant_dir, index_name)
-                if not os.path.isdir(index_dir):
-                    continue
+                self.load_one(_tenant, index_name, log_id=log_id)
 
-                logs.add(log_id, 'load', f'Start loading index "{index_name}" (tenant: {_tenant}) ... ')
-                s_time2 = time.time()
-
-                if index_name not in self.indices[_tenant]:
-                    self.indices[_tenant][index_name] = {}
-
-                for file_name in os.listdir(index_dir):
-                    if not file_name.endswith('.index'):
-                        continue
-
-                    # 若已在内存，无需重复加载
-                    partition = file_name[:-len('.index')]
-                    if self.index(_tenant, index_name, partition) is not None:
-                        continue
-
-                    index_path = os.path.join(index_dir, file_name)
-                    self.indices[_tenant][index_name][partition] = faiss.read_index(index_path)
-
-                mv_index_path = os.path.join(index_dir, 'mv_index.pkl')
-                if os.path.exists(mv_index_path) and (index_name not in self.mv_indices[_tenant] or
-                                                      self.mv_indices[_tenant][index_name] is None):
-                    with open(mv_index_path, 'rb') as f:
-                        self.mv_indices[_tenant][index_name] = pickle.load(f)
-
-                logs.add(log_id, 'load', f'Finish loading index "{index_name}" '
-                                         f'(use time: {time.time() - s_time2:.4f}s, tenant: {_tenant})')
-
-        logs.add(log_id, 'load', f'Finish loading all indices '
-                                 f'(use time: {time.time() - s_time:.4f}s, tenant: "{tenant}")')
-
-    def release(self, tenant: str, index_name: str, partition: str = '', log_id: Union[str, int] = 'Faiss') -> int:
-        log_name = f'"{index_name}({partition})" (tenant: {tenant})'
-
+    @logs.log
+    def release(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
         # release index 前，先保存索引
         ret = self.save_one(tenant, index_name, partition, log_id)
         if not ret:
-            logs.add(log_id, 'release', f'Fail in saving {log_name} before releasing',
-                     _level=logs.LEVEL_ERROR)
             return 0
-
-        logs.add(log_id, 'release', f'Start releasing index {log_name} ...')
-        s_time = time.time()
 
         if not partition:
             if tenant in self.indices and index_name in self.indices[tenant]:
@@ -366,9 +256,9 @@ class Faiss:
                     partition in self.indices[tenant][index_name]:
                 del self.indices[tenant][index_name][partition]
 
-        logs.add(log_id, 'release', f'Successfully releasing index {log_name} (use time: {time.time() - s_time:.4f}s)')
         return 1
 
+    @logs.log
     def search(self,
                vectors: np.ndarray,
                tenant: str,
@@ -377,15 +267,9 @@ class Faiss:
                nprobe=10,
                top_k=20,
                use_mv=True,
-               log_id: Union[str, int] = 'Faiss') -> List[List[dict]]:
-        log_name = f'"{index_names}({partitions})" (tenant: {tenant})'
-        logs.add(log_id, logs.fn_name(), f'start searching in {log_name} for vectors ...')
-
+               log_id=None) -> List[List[dict]]:
         if vectors is None or not vectors.any():
-            logs.add(log_id, logs.fn_name(), f'Error: vectors cannot be empty', _level=logs.LEVEL_ERROR)
             return []
-
-        total_s_time = time.time()
 
         results = [[] for _ in range(len(vectors))]
         avg_results = [{} for _ in range(len(vectors))]
@@ -394,113 +278,16 @@ class Faiss:
         partitions = partitions if partitions else [''] * len(index_names)
         for i, index_name in enumerate(index_names):
             partition = partitions[i] if partitions[i] else self.DEFAULT
-
-            # 获取 index
-            index = self.index(tenant, index_name, partition)
-            if index is None:
-                continue
-
-            table_name = get_table_name(tenant, index_name, partition)
-
-            if use_mv and partition == self.DEFAULT and tenant in self.mv_indices and \
-                    index_name in self.mv_indices[tenant]:
-                s_time = time.time()
-
-                # 获取该 index 每个 partition 的 滑动平均向量
-                mv_indices = self.mv_indices[tenant][index_name]
-                mv_indices = dict(filter(lambda x: x[1], mv_indices.items()))
-
-                tmp_partitions = list(mv_indices.keys())
-                avg_vectors = list(map(lambda x: x['vector'], mv_indices.values()))
-
-                # 根据 滑动平均向量，计算语义相似度
-                sims = cosine_similarity(vectors, avg_vectors)
-
-                # 整理、排序 滑动平均向量计算得出的结果
-                for _j, sim in enumerate(sims):
-                    sim = list(zip(tmp_partitions, sim))
-                    sim.sort(key=lambda x: -x[1])
-                    avg_results[_j][table_name] = dict(sim)
-
-                logs.add(log_id, logs.fn_name(), f'finish mv sim (use time: {time.time() - s_time:.4f}s)')
-
-            index.nprobe = nprobe
-
-            s_time = time.time()
-            D, I = index.search(vectors, top_k)
-            logs.add(log_id, logs.fn_name(), f'finish index search (use time: {time.time() - s_time:.4f}s, '
-                                             f'index: {index_name}({partition}), tenant: {tenant})')
-
-            d_table_name_2_ids[table_name] = list(set(list(map(int, I.reshape(-1)))))
-
-            for _i, _result_ids in enumerate(I):
-                similarities = D[_i]
-                results[_i] += [
-                    {'id': _id, 'score': _similarity, 'table_name': table_name}
-                    for _id, _similarity in set(list(zip(_result_ids, similarities))) if _id != -1
-                ]
-
-        logs.add(log_id, logs.fn_name(), f'finish index search '
-                                         f'(use time: {time.time() - total_s_time:.4f}s, tenant: {tenant})')
-
-        s_time = time.time()
+            self._search_a_index(tenant, index_name, partition, vectors, nprobe, top_k,
+                                 avg_results, use_mv, d_table_name_2_ids, results, log_id=log_id)
 
         # 获取具体的结构化信息
-        d_table_id_2_info = {}
-        for table_name, ids in d_table_name_2_ids.items():
-            with _db(table_name) as d:
-                for _id in ids:
-                    if _id in d:
-                        table_id = f"{table_name}____{_id}"
-                        d_table_id_2_info[table_id] = d[_id]
+        d_table_id_2_info = _get_info(d_table_name_2_ids, log_id=log_id)
 
-        logs.add(log_id, logs.fn_name(), f'finish get info (use time: {time.time() - s_time:.4f}s, tenant: {tenant})')
+        return _combine_results(results, avg_results, d_table_id_2_info, top_k, log_id=log_id)
 
-        for _i, one_results in enumerate(results):
-            new_result = []
-
-            tmp_avg_result = avg_results[_i]
-            for val in one_results:
-                table_id = f"{val['table_name']}____{val['id']}"
-                data = d_table_id_2_info[table_id] if table_id in d_table_id_2_info else None
-                if not data:
-                    continue
-
-                if val['table_name'] not in tmp_avg_result:
-                    avg_similarity = 1.
-                else:
-                    _partition = data['partition'] if 'partition' in data else ''
-                    tmp_avg_ret = tmp_avg_result[val['table_name']]
-                    avg_similarity = tmp_avg_ret[_partition] if _partition in tmp_avg_ret else 0.
-
-                new_result.append({
-                    'data': data,
-                    'score': combine_avg_score(avg_similarity, val['score']),
-                    'mv_score': float(avg_similarity),
-                })
-
-            new_result.sort(key=lambda x: (-x['score'], -x['mv_score']))
-
-            d_new_result = {}
-            for v in new_result:
-                k = f'{v}'
-                if k not in d_new_result:
-                    d_new_result[k] = v
-                if len(d_new_result) >= top_k:
-                    break
-
-            results[_i] = list(d_new_result.values())
-
-        logs.add(log_id, logs.fn_name(), f'Finish all searching in {log_name} '
-                                         f'(use_time: {time.time() - total_s_time:.4f}s): {results}')
-        return results
-
-    def delete_with_id(self, ids: List[int], tenant: str, index_name: str, partition: str = '',
-                       log_id: Union[str, int] = 'Faiss'):
-
-        logs.add(log_id, logs.fn_name(), f'Start deleting ids from "{index_name}({partition})" '
-                                         f'(len: {len(ids)}, tenant: {tenant}) ... ')
-
+    @logs.log
+    def delete_with_id(self, ids: List[int], tenant: str, index_name: str, partition: str = '', log_id=None):
         partition = partition if partition else self.DEFAULT
         ids = list(filter(lambda x: x or x == 0, ids))
 
@@ -509,8 +296,7 @@ class Faiss:
                 if _id in d:
                     del d[_id]
 
-        logs.add(log_id, logs.fn_name(), f'Finish deleting ids from "{index_name}({partition})" (tenant: {tenant})')
-
+    @logs.log
     def delete_with_info(self,
                          tenant: str,
                          index_name: str,
@@ -518,7 +304,7 @@ class Faiss:
                          texts: List[Any] = None,
                          info: List[dict] = None,
                          partition: str = '',
-                         log_id: Union[str, int] = 'Faiss'):
+                         log_id=None):
         partition = partition if partition else self.DEFAULT
 
         index = self.index(tenant, index_name, partition)
@@ -533,8 +319,9 @@ class Faiss:
         with _db(table_name) as d:
             ids = [d[mid] for mid in md5_ids if mid in d]
 
-        self.delete_with_id(ids, tenant, index_name, partition, log_id)
+        self.delete_with_id(ids, tenant, index_name, partition, log_id=log_id)
 
+    @logs.log
     def update_with_info(self,
                          tenant: str,
                          index_name: str,
@@ -543,9 +330,7 @@ class Faiss:
                          old_info: List[dict] = None,
                          new_info: List[dict] = None,
                          partition: str = '',
-                         log_id: Union[str, int] = 'Faiss'):
-        logs.add(log_id, logs.fn_name(), f'Start updating info for "{index_name}({partition})" (tenant: {tenant}) ...')
-
+                         log_id=None):
         partition = partition if partition else self.DEFAULT
 
         index = self.index(tenant, index_name, partition)
@@ -581,7 +366,56 @@ class Faiss:
             for _i, _uid in enumerate(updated_ids):
                 d[_uid] = updated_info[_i]
 
-        logs.add(log_id, logs.fn_name(), f'Finish updating info for "{index_name}({partition})" (tenant: {tenant})')
+    @logs.log
+    def _search_a_index(self,
+                        tenant: str,
+                        index_name: str,
+                        partition: str,
+                        vectors: np.ndarray,
+                        nprobe: int,
+                        top_k: int,
+                        avg_results: List[dict],
+                        use_mv: bool,
+                        d_table_name_2_ids: dict,
+                        results: List[list],
+                        log_id=None):
+        # 获取 index
+        index = self.index(tenant, index_name, partition)
+        if index is None:
+            return
+
+        table_name = get_table_name(tenant, index_name, partition)
+
+        if use_mv and partition == self.DEFAULT and tenant in self.mv_indices and \
+                index_name in self.mv_indices[tenant]:
+            # 获取该 index 每个 partition 的 滑动平均向量
+            mv_indices = self.mv_indices[tenant][index_name]
+            mv_indices = dict(filter(lambda x: x[1], mv_indices.items()))
+
+            tmp_partitions = list(mv_indices.keys())
+            avg_vectors = list(map(lambda x: x['vector'], mv_indices.values()))
+
+            # 根据 滑动平均向量，计算语义相似度
+            sims = cosine_similarity(vectors, avg_vectors)
+
+            # 整理、排序 滑动平均向量计算得出的结果
+            for _j, sim in enumerate(sims):
+                sim = list(zip(tmp_partitions, sim))
+                sim.sort(key=lambda x: -x[1])
+                avg_results[_j][table_name] = dict(sim)
+
+        index.nprobe = nprobe
+
+        D, I = index.search(vectors, top_k)
+
+        d_table_name_2_ids[table_name] = list(set(list(map(int, I.reshape(-1)))))
+
+        for _i, _result_ids in enumerate(I):
+            similarities = D[_i]
+            results[_i] += [
+                {'id': _id, 'score': _similarity, 'table_name': table_name}
+                for _id, _similarity in set(list(zip(_result_ids, similarities))) if _id != -1
+            ]
 
 
 def _db(table_name: str = None):
@@ -650,12 +484,14 @@ def get_md5_table(tenant: str, index_name: str, partition: str = '', id_type='IV
     return get_table_name(tenant, index_name, partition) + f'____md5_{id_type}'
 
 
+@logs.log
 def get_uids(tenant: str,
              index_name: str,
              texts: Union[np.ndarray, List[Any]],
              info: List[Any] = None,
              partition: str = '',
-             id_queue: Queue = None, ) -> List[int]:
+             id_queue: Queue = None,
+             log_id=None) -> List[int]:
     table_name = get_md5_table(tenant, index_name, partition, 'IVF' if id_queue is None else 'Flat')
 
     info = [''] * len(texts) if not info else info
@@ -673,7 +509,8 @@ def get_uids(tenant: str,
     return ids
 
 
-def filter_duplicate(tenant: str, index_name: str, ids: List[int], partition: str = '') -> List[int]:
+@logs.log
+def filter_duplicate(tenant: str, index_name: str, ids: List[int], partition: str = '', log_id=None) -> List[int]:
     """ 返回 没有重复(已存在db) 的数据的 位置index """
     if not ids:
         return []
@@ -715,6 +552,59 @@ def get_index_type(index: faiss.Index) -> str:
 
 def _get_from_queue(_queue: Queue):
     return _queue.get()
+
+
+@logs.log
+def _get_info(d_table_name_2_ids: dict, log_id=None) -> dict:
+    """ 获取具体的结构化信息 """
+    d_table_id_2_info = {}
+    for table_name, ids in d_table_name_2_ids.items():
+        with _db(table_name) as d:
+            for _id in ids:
+                if _id in d:
+                    table_id = f"{table_name}____{_id}"
+                    d_table_id_2_info[table_id] = d[_id]
+    return d_table_id_2_info
+
+
+@logs.log
+def _combine_results(results: List[list], avg_results: List[dict], d_table_id_2_info: dict, top_k: int, log_id=None):
+    for _i, one_results in enumerate(results):
+        new_result = []
+
+        tmp_avg_result = avg_results[_i]
+        for val in one_results:
+            table_id = f"{val['table_name']}____{val['id']}"
+            data = d_table_id_2_info[table_id] if table_id in d_table_id_2_info else None
+            if not data:
+                continue
+
+            if val['table_name'] not in tmp_avg_result:
+                avg_similarity = 1.
+            else:
+                _partition = data['partition'] if 'partition' in data else ''
+                tmp_avg_ret = tmp_avg_result[val['table_name']]
+                avg_similarity = tmp_avg_ret[_partition] if _partition in tmp_avg_ret else 0.
+
+            new_result.append({
+                'data': data,
+                'score': combine_avg_score(avg_similarity, val['score']),
+                'mv_score': float(avg_similarity),
+            })
+
+        new_result.sort(key=lambda x: (-x['score'], -x['mv_score']))
+
+        d_new_result = {}
+        for v in new_result:
+            k = f'{v}'
+            if k not in d_new_result:
+                d_new_result[k] = v
+            if len(d_new_result) >= top_k:
+                break
+
+        results[_i] = list(d_new_result.values())
+
+    return results
 
 
 o_faiss = Faiss()
