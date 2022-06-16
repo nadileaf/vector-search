@@ -1,7 +1,7 @@
 import os
 import math
-import time
 import faiss
+import threading
 from queue import Queue
 import numpy as np
 from sqlitedict import SqliteDict
@@ -554,16 +554,32 @@ def _get_from_queue(_queue: Queue):
     return _queue.get()
 
 
+def _get_info_thread(ids: list, table_name: str, d_table_id_2_info: dict):
+    if not ids:
+        return
+
+    with _db(table_name) as d:
+        while ids:
+            _id = ids.pop(0)
+            if _id in d:
+                table_id = f"{table_name}____{_id}"
+                d_table_id_2_info[table_id] = d[_id]
+
+
 @logs.log
 def _get_info(d_table_name_2_ids: dict, log_id=None) -> dict:
     """ 获取具体的结构化信息 """
     d_table_id_2_info = {}
+
+    pool = []
     for table_name, ids in d_table_name_2_ids.items():
-        with _db(table_name) as d:
-            for _id in ids:
-                if _id in d:
-                    table_id = f"{table_name}____{_id}"
-                    d_table_id_2_info[table_id] = d[_id]
+        thread = threading.Thread(target=_get_info_thread, args=(ids, table_name, d_table_id_2_info))
+        thread.start()
+        pool.append(thread)
+
+    for thread in pool:
+        thread.join()
+
     return d_table_id_2_info
 
 
