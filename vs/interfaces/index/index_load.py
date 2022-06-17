@@ -25,7 +25,7 @@ def index_load(
 
     _ret = 1
     if index_name == '*':
-        o_faiss.load(tenant, log_id)
+        o_faiss.load(tenant, log_id=log_id)
 
     else:
         _ret = o_faiss.load_one(tenant, index_name, partition, log_id=log_id)

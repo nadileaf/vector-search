@@ -40,7 +40,7 @@ def index_update_with_info(_input: UpdateInfoInput,
         return {'code': 0, 'msg': f'texts, vectors 不能为空'}
 
     vectors = np.array(vectors).astype(np.float32)
-    o_faiss.update_with_info(tenant, index_name, vectors, texts, old_info, new_info, partition, log_id)
+    o_faiss.update_with_info(tenant, index_name, vectors, texts, old_info, new_info, partition, log_id=log_id)
     return {'code': 1}
 
 

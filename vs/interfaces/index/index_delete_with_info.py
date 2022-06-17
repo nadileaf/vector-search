@@ -36,7 +36,7 @@ def index_delete_with_info(_input: InfoInput, tenant: Optional[str] = Header('_t
         return {'code': 0, 'msg': f'texts, vectors 不能为空'}
 
     vectors = np.array(vectors).astype(np.float32)
-    o_faiss.delete_with_info(tenant, index_name, vectors, texts, info, partition, log_id)
+    o_faiss.delete_with_info(tenant, index_name, vectors, texts, info, partition, log_id=log_id)
     return {'code': 1}
 
 

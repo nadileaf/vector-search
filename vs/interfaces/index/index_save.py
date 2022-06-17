@@ -25,9 +25,9 @@ def index_save(
 
     _ret = 1
     if index_name == '*':
-        o_faiss.save(tenant, log_id)
+        o_faiss.save(tenant, log_id=log_id)
     else:
-        _ret = o_faiss.save_one(tenant, index_name, partition, log_id)
+        _ret = o_faiss.save_one(tenant, index_name, partition, log_id=log_id)
 
     msg = 'Successfully' if _ret else 'Fail'
     msg = f'{msg} save index "{index_name}({partition})" (tenant: "{tenant}")'

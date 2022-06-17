@@ -65,7 +65,7 @@ def index_train_batch(_input: VectorInput, tenant: Optional[str] = Header('_test
 
         vectors = np.vstack(d_key_2_vectors[key]).astype(np.float32)
         del d_key_2_vectors[key]
-        o_faiss.train(tenant, index_name, vectors, partition, log_id)
+        o_faiss.train(tenant, index_name, vectors, partition, log_id=log_id)
 
     return {'code': 1}
 

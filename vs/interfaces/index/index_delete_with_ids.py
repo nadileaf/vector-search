@@ -30,7 +30,7 @@ def index_delete_with_ids(_input: IdsInput, tenant: Optional[str] = Header('_tes
     if not ids:
         return {'code': 0, 'msg': f'ids 不能为空'}
 
-    o_faiss.delete_with_id(ids, tenant, index_name, partition, log_id)
+    o_faiss.delete_with_id(ids, tenant, index_name, partition, log_id=log_id)
     return {'code': 1}
 
 

@@ -45,7 +45,7 @@ def index_train(_input: TrainVectorInput, tenant: Optional[str] = Header('_test'
         return {'code': 1, 'msg': f'index "{index_name}({partition})" (tenant: {tenant}) 是 {index_type} 索引，不需要训练'}
 
     vectors = np.array(vectors).astype(np.float32)
-    o_faiss.train(tenant, index_name, vectors, partition, log_id)
+    o_faiss.train(tenant, index_name, vectors, partition, log_id=log_id)
     return {'code': 1}
 
 

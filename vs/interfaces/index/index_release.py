@@ -28,7 +28,7 @@ def index_release(
         for _index_name in o_faiss.indices.keys():
             o_faiss.release(tenant, _index_name, partition, log_id=log_id)
     else:
-        _ret = o_faiss.release(tenant, index_name, partition, log_id)
+        _ret = o_faiss.release(tenant, index_name, partition, log_id=log_id)
 
     msg = 'Successfully' if _ret else 'Fail'
     msg = f'{msg} releasing index "{index_name}({partition})" (tenant: "{tenant}")'
