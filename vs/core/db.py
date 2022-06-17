@@ -243,7 +243,7 @@ class Faiss:
     @logs.log
     def release(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
         # release index 前，先保存索引
-        ret = self.save_one(tenant, index_name, partition, log_id)
+        ret = self.save_one(tenant, index_name, partition, log_id=log_id)
         if not ret:
             return 0
 
