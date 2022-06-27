@@ -18,6 +18,7 @@ from vs.interfaces.index.index_release import index_release
 from vs.interfaces.index.index_save import index_save
 from vs.interfaces.index.index_search import index_search, SearchInput
 from vs.interfaces.index.index_train import index_train, TrainVectorInput
+from vs.interfaces.index.index_is_train import index_is_train
 from vs.server import server_run
 
 sys.path.pop()
@@ -114,6 +115,10 @@ def update_with_info(index_name: str,
 
 def exist(index_name: str, partition: str = '', tenant: str = '_test', log_id: int = None):
     return index_exist(index_name, partition, tenant, log_id=log_id)
+
+
+def is_train(index_name: str, partition: str = '', tenant: str = '_test', log_id: int = None):
+    return index_is_train(index_name, partition, tenant, log_id=log_id)
 
 
 def list_index(tenant: str = '_test', log_id: int = None):
