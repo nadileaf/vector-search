@@ -5,6 +5,7 @@ from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
+from vs.lib.utils import check_tenant
 
 
 class UpdateInfoInput(BaseModel):
@@ -32,6 +33,8 @@ def index_update_with_info(_input: UpdateInfoInput,
     old_info = _input.old_info
     new_info = _input.new_info
     partition = _input.partition
+
+    tenant = check_tenant(tenant)
 
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}

@@ -7,6 +7,7 @@ from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
+from vs.lib.utils import check_tenant
 
 
 class SearchInput(BaseModel):
@@ -41,6 +42,8 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
     nprobe = _input.nprobe
     top_k = _input.top_k
     use_mv = _input.use_mv
+
+    tenant = check_tenant(tenant)
 
     if not index_names:
         return {'code': 0, 'msg': f'index_names 不能为空'}

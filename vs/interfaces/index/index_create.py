@@ -4,6 +4,7 @@ from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss, get_index
+from vs.lib.utils import check_tenant
 
 _reg_valid = re.compile(r'^[a-zA-Z0-9_\-. \u3400-\u9FFF]+$')
 
@@ -26,6 +27,8 @@ def index_create(
     partition = partition if isinstance(partition, str) else partition.default
     count = int(count) if isinstance(count, int) else count.default
     tenant = tenant if isinstance(tenant, str) else tenant.default
+
+    tenant = check_tenant(tenant)
 
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}

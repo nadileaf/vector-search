@@ -4,6 +4,7 @@ from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
+from vs.lib.utils import check_tenant
 
 
 class ExistResponse(Response):
@@ -24,6 +25,8 @@ def index_exist(
     index_name = index_name if isinstance(index_name, str) else index_name.default
     partition = partition if isinstance(partition, str) else partition.default
     tenant = tenant if isinstance(tenant, str) else tenant.default
+
+    tenant = check_tenant(tenant)
 
     partition = partition if partition else o_faiss.DEFAULT
 

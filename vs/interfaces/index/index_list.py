@@ -6,6 +6,7 @@ from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss, get_metric, get_index_type
 from vs.config.path import INDEX_DIR
+from vs.lib.utils import check_tenant
 
 
 class IndicesResponse(Response):
@@ -19,6 +20,8 @@ class IndicesResponse(Response):
 @log
 def index_list(tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
+
+    tenant = check_tenant(tenant)
 
     if tenant not in o_faiss.indices:
         return {'code': 1, 'data': {}, 'msg': f'tenant "{tenant}" 下没有索引'}

@@ -5,6 +5,7 @@ from typing import Optional, List, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss, get_index_type
+from vs.lib.utils import check_tenant
 
 
 class TrainVectorInput(BaseModel):
@@ -29,6 +30,8 @@ def index_train(_input: TrainVectorInput, tenant: Optional[str] = Header('_test'
     index_name = _input.index_name
     vectors = _input.vectors
     partition = _input.partition
+
+    tenant = check_tenant(tenant)
 
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}

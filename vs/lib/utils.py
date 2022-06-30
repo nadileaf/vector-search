@@ -1,10 +1,13 @@
 import os
+import re
 import time
 import random
 import hashlib
 
 _cur_dir = os.path.split(os.path.abspath(__file__))[0]
 root_dir = os.path.split(os.path.split(_cur_dir)[0])[0]
+
+reg_not_en_zh = re.compile(r'[^\u3400-\u9FFFa-zA-Z_\-0-9.]')
 
 
 def uid():
@@ -34,3 +37,7 @@ def get_relative_dir(*args, root=''):
 
 def get_relative_file(*args, root=''):
     return os.path.join(get_relative_dir(*args[:-1], root=root), args[-1])
+
+
+def check_tenant(tenant: str):
+    return md5(tenant) if reg_not_en_zh.search(tenant) else tenant

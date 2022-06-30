@@ -5,6 +5,7 @@ from typing import Optional, List, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
+from vs.lib.utils import check_tenant
 
 # 用于缓存数据
 d_key_2_vectors = {}
@@ -34,6 +35,8 @@ def index_train_batch(_input: VectorInput, tenant: Optional[str] = Header('_test
     vectors = _input.vectors
     partition = _input.partition
     start_train = _input.start_train
+
+    tenant = check_tenant(tenant)
 
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}

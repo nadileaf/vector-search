@@ -23,9 +23,6 @@ class Faiss:
         # 记录 index 每个分区的滑动平均向量
         self.mv_indices = {}
 
-        # 加载已有索引
-        self.load('*')
-
     def index(self, tenant: str, index_name: str, partition: str = '') -> Union[None, faiss.Index]:
         if tenant not in self.indices or index_name not in self.indices[tenant] or \
                 (partition and partition not in self.indices[tenant][index_name]):
@@ -164,6 +161,11 @@ class Faiss:
             index_path = get_relative_file(tenant, index_name, f'{partition}.index', root=INDEX_DIR)
             faiss.write_index(_index, index_path)
 
+            if partition == self.DEFAULT and tenant in self.mv_indices and index_name in self.mv_indices[tenant] and \
+                    self.mv_indices[tenant][index_name] is not None:
+                with open(get_relative_file(tenant, index_name, 'mv_index.pkl', root=INDEX_DIR), 'wb') as f:
+                    pickle.dump(self.mv_indices[tenant][index_name], f)
+
         return 1
 
     @logs.log
@@ -229,16 +231,12 @@ class Faiss:
     @logs.log
     def load(self, tenant: str, log_id=None):
         """ 从文件中加载索引 """
-        for _tenant in os.listdir(INDEX_DIR):
-            if tenant not in ['*', _tenant]:
-                continue
+        _tenant_dir = os.path.join(INDEX_DIR, tenant)
+        if not os.path.isdir(_tenant_dir):
+            return
 
-            _tenant_dir = os.path.join(INDEX_DIR, _tenant)
-            if not os.path.isdir(_tenant_dir):
-                continue
-
-            for index_name in os.listdir(_tenant_dir):
-                self.load_one(_tenant, index_name, log_id=log_id)
+        for index_name in os.listdir(_tenant_dir):
+            self.load_one(tenant, index_name, log_id=log_id)
 
     @logs.log
     def release(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
@@ -453,15 +451,15 @@ def get_nlist(count: int):
     elif count <= 300:
         return int(math.sqrt(count) / 2)
     elif count <= 1000:
-        return int(math.sqrt(count) * 0.75)
+        return int(math.sqrt(count) * 0.7)
     elif count <= 5000:
-        return int(math.sqrt(count) * 1)
+        return int(math.sqrt(count) * 0.9)
     elif count <= 15000:
-        return int(math.sqrt(count) * 1.5)
+        return int(math.sqrt(count) * 1.2)
     elif count <= 50000:
-        return int(math.sqrt(count) * 2)
+        return int(math.sqrt(count) * 1.5)
     else:
-        return min(int(math.sqrt(count) * 2.5), 2048)
+        return min(int(math.sqrt(count) * 2), 2048)
 
 
 def get_index(count: int, dim: int):

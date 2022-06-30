@@ -5,6 +5,7 @@ from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
+from vs.lib.utils import check_tenant
 
 
 class InfoInput(BaseModel):
@@ -29,6 +30,8 @@ def index_delete_with_info(_input: InfoInput, tenant: Optional[str] = Header('_t
     info = _input.info
     partition = _input.partition
 
+    tenant = check_tenant(tenant)
+
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}
 
@@ -43,13 +46,13 @@ def index_delete_with_info(_input: InfoInput, tenant: Optional[str] = Header('_t
 if __name__ == '__main__':
     # 测试代码
     from vs.interfaces.index.index_create import index_create
-    from vs.interfaces.index.index_train import index_train
+    from vs.interfaces.index.index_train import index_train, TrainVectorInput
     from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput
     from vs.interfaces.index.index_search import index_search, SearchInput
 
     index_create('test11', 384, '', 2000)
 
-    index_train(VectorInput(
+    index_train(TrainVectorInput(
         index_name='test11',
         vectors=list(map(lambda l: list(map(float, l)), np.eye(200, 384))),
     ))

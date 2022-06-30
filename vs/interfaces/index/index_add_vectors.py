@@ -5,6 +5,7 @@ from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
 from vs.core.db import o_faiss
+from vs.lib.utils import check_tenant
 
 
 class VectorInput(BaseModel):
@@ -44,6 +45,8 @@ def index_add_vectors(_input: VectorInput, tenant: Optional[str] = Header('_test
     filter_exist = _input.filter_exist
     add_default_partition = _input.add_default_partition
     ret_id = _input.ret_id
+
+    tenant = check_tenant(tenant)
 
     if not index_name:
         return {'code': 0, 'msg': f'index_name 不能为空'}
