@@ -12,6 +12,7 @@ d_key_2_vectors = {}
 
 
 class VectorInput(BaseModel):
+    tenant: Optional[str] = Field('_test', description='租户名称')
     index_name: str = Field(description='索引的名称')
     vectors: Optional[List[List[float]]] = Field(description='向量数据; shape = (数据量，数据的维度) ')
     partition: Optional[str] = Field('', description='索引的分区')
@@ -29,8 +30,8 @@ class Result(BaseModel):
           response_model=Response,
           description="训练索引；避免数据过大，没法经过网络请求传输")
 @log
-def index_train_batch(_input: VectorInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
-    tenant = tenant if isinstance(tenant, str) else tenant.default
+def index_train_batch(_input: VectorInput, log_id: Union[int, str] = None):
+    tenant = _input.tenant
     index_name = _input.index_name
     vectors = _input.vectors
     partition = _input.partition

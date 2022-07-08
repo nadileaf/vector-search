@@ -1,5 +1,5 @@
 import re
-from fastapi import Query, Header
+from fastapi import Query
 from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
@@ -19,7 +19,7 @@ def index_create(
         dim_size: int = Query(0, description='向量的维度大小, 如 384, 1024 等'),
         partition: Optional[str] = Query('', description='索引的分区'),
         count: Optional[int] = Query(10000, description='预估的数据量'),
-        tenant: Optional[str] = Header('_test'),
+        tenant: Optional[str] = Query('_test', description='租户名称'),
         log_id: Union[int, str] = None,
 ):
     index_name = index_name if isinstance(index_name, str) else index_name.default

@@ -26,10 +26,11 @@ sys.path.pop()
 
 def train(index_name: str, vectors: List[List[float]], partition: str = '', tenant: str = '_test', log_id: int = None):
     return index_train(TrainVectorInput(
+        tenant=tenant,
         index_name=index_name,
         vectors=vectors,
         partition=partition
-    ), tenant=tenant, log_id=log_id)
+    ), log_id=log_id)
 
 
 def add(
@@ -45,6 +46,7 @@ def add(
         log_id: int = None,
 ):
     return index_add_vectors(VectorInput(
+        tenant=tenant,
         index_name=index_name,
         vectors=vectors,
         info=info,
@@ -53,7 +55,7 @@ def add(
         filter_exist=filter_exist,
         add_default_partition=add_default_partition,
         ret_id=ret_id,
-    ), tenant=tenant, log_id=log_id)
+    ), log_id=log_id)
 
 
 def create(
@@ -73,10 +75,11 @@ def delete_with_ids(index_name: str,
                     tenant: str = '_test',
                     log_id: int = None):
     return index_delete_with_ids(IdsInput(
+        tenant=tenant,
         index_name=index_name,
         ids=ids,
         partition=partition
-    ), tenant=tenant, log_id=log_id)
+    ), log_id=log_id)
 
 
 def delete_with_info(index_name: str,
@@ -87,12 +90,13 @@ def delete_with_info(index_name: str,
                      tenant: str = '_test',
                      log_id: int = None):
     return index_delete_with_info(InfoInput(
+        tenant=tenant,
         index_name=index_name,
         vectors=vectors,
         texts=texts,
         info=info,
         partition=partition
-    ), tenant=tenant, log_id=log_id)
+    ), log_id=log_id)
 
 
 def update_with_info(index_name: str,
@@ -104,13 +108,14 @@ def update_with_info(index_name: str,
                      tenant: str = '_test',
                      log_id: int = None):
     return index_update_with_info(UpdateInfoInput(
+        tenant=tenant,
         index_name=index_name,
         vectors=vectors,
         texts=texts,
         old_info=old_info,
         new_info=new_info,
         partition=partition
-    ), tenant=tenant, log_id=log_id)
+    ), log_id=log_id)
 
 
 def exist(index_name: str, partition: str = '', tenant: str = '_test', log_id: int = None):
@@ -144,13 +149,14 @@ def search(
         nprobe: int = 10,
         top_k: int = 20,
         use_mv: bool = True,
-        tenant: str = '_test',
+        tenants: List[str] = [],
         log_id: int = None):
     return index_search(SearchInput(
+        tenants=tenants,
         index_names=index_names,
         vectors=vectors,
         partitions=partitions,
         nprobe=nprobe,
         top_k=top_k,
         use_mv=use_mv,
-    ), tenant=tenant, log_id=log_id)
+    ), log_id=log_id)

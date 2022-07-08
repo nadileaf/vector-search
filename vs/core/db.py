@@ -259,7 +259,7 @@ class Faiss:
     @logs.log
     def search(self,
                vectors: np.ndarray,
-               tenant: str,
+               tenants: List[str],
                index_names: List[str],
                partitions: List[str] = None,
                nprobe=10,
@@ -275,6 +275,7 @@ class Faiss:
 
         partitions = partitions if partitions else [''] * len(index_names)
         for i, index_name in enumerate(index_names):
+            tenant = tenants[i]
             partition = partitions[i] if partitions[i] else self.DEFAULT
             self._search_a_index(tenant, index_name, partition, vectors, nprobe, top_k,
                                  avg_results, use_mv, d_table_name_2_ids, results, log_id=log_id)

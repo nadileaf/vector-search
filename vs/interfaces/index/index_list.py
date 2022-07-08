@@ -1,6 +1,6 @@
 import os
 from pydantic import Field
-from fastapi import Header
+from fastapi import Query
 from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
@@ -18,7 +18,7 @@ class IndicesResponse(Response):
          response_model=IndicesResponse,
          description="列举索引")
 @log
-def index_list(tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
+def index_list(tenant: Optional[str] = Query('_test', description='租户名称'), log_id: Union[int, str] = None):
     tenant = tenant if isinstance(tenant, str) else tenant.default
 
     tenant = check_tenant(tenant)

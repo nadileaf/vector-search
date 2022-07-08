@@ -9,6 +9,7 @@ from vs.lib.utils import check_tenant
 
 
 class TrainVectorInput(BaseModel):
+    tenant: Optional[str] = Field('_test', description='租户名称')
     index_name: str = Field(description='索引的名称')
     vectors: List[List[float]] = Field(description='向量数据; shape = (数据量，数据的维度) ')
     partition: Optional[str] = Field('', description='索引的分区')
@@ -25,8 +26,8 @@ class Result(BaseModel):
           response_model=Response,
           description="训练索引")
 @log
-def index_train(_input: TrainVectorInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
-    tenant = tenant if isinstance(tenant, str) else tenant.default
+def index_train(_input: TrainVectorInput, log_id: Union[int, str] = None):
+    tenant = _input.tenant
     index_name = _input.index_name
     vectors = _input.vectors
     partition = _input.partition

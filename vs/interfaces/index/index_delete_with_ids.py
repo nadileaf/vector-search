@@ -1,6 +1,5 @@
 import numpy as np
 from pydantic import BaseModel, Field
-from fastapi import Header
 from typing import Optional, List, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
@@ -9,6 +8,7 @@ from vs.lib.utils import check_tenant
 
 
 class IdsInput(BaseModel):
+    tenant: Optional[str] = Field('_test', description='租户名称')
     index_name: str = Field(description='索引的名称')
     ids: List[int] = Field(description='数据的 ids, 之前 add vectors 时返回的 ids')
     partition: Optional[str] = Field('', description='索引的分区')
@@ -19,8 +19,8 @@ class IdsInput(BaseModel):
           response_model=Response,
           description="删除数据，根据 id 删除, id 为 add vector 时返回的 id")
 @log
-def index_delete_with_ids(_input: IdsInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
-    tenant = tenant if isinstance(tenant, str) else tenant.default
+def index_delete_with_ids(_input: IdsInput, log_id: Union[int, str] = None):
+    tenant = _input.tenant
     index_name = _input.index_name
     ids = _input.ids
     partition = _input.partition

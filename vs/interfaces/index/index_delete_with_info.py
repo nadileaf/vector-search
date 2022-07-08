@@ -1,6 +1,5 @@
 import numpy as np
 from pydantic import BaseModel, Field
-from fastapi import Header
 from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
@@ -9,6 +8,7 @@ from vs.lib.utils import check_tenant
 
 
 class InfoInput(BaseModel):
+    tenant: Optional[str] = Field('_test', description='租户名称')
     index_name: str = Field(description='索引的名称')
     vectors: List[List[float]] = Field(description='向量数据; shape = (数据量，数据的维度) ')
     texts: Optional[List[Any]] = Field(description='向量数据对应的文本或描述；与 vector 有一一对应关系，用于生成 id; '
@@ -22,8 +22,8 @@ class InfoInput(BaseModel):
           response_model=Response,
           description="删除数据，根据 info 删除")
 @log
-def index_delete_with_info(_input: InfoInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
-    tenant = tenant if isinstance(tenant, str) else tenant.default
+def index_delete_with_info(_input: InfoInput, log_id: Union[int, str] = None):
+    tenant = _input.tenant
     index_name = _input.index_name
     vectors = _input.vectors
     texts = _input.texts

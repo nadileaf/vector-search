@@ -2,7 +2,6 @@ import os
 import sys
 import numpy as np
 from pydantic import BaseModel, Field
-from fastapi import Header
 from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
@@ -11,6 +10,7 @@ from vs.lib.utils import check_tenant
 
 
 class SearchInput(BaseModel):
+    tenants: Optional[List[str]] = Field([], description='租户名称')
     index_names: List[str] = Field(description='索引的名称')
     vectors: List[List[float]] = Field(description='向量数据; shape = (数据量，数据的维度) ')
     partitions: Optional[List[str]] = Field(None, description='索引的分区')
@@ -34,8 +34,8 @@ class SearchResponse(Response):
           response_model=SearchResponse,
           description="搜索数据")
 @log
-def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), log_id: Union[int, str] = None):
-    tenant = tenant if isinstance(tenant, str) else tenant.default
+def index_search(_input: SearchInput, log_id: Union[int, str] = None):
+    tenants = _input.tenants
     index_names = _input.index_names
     vectors = _input.vectors
     partitions = _input.partitions
@@ -43,7 +43,8 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
     top_k = _input.top_k
     use_mv = _input.use_mv
 
-    tenant = check_tenant(tenant)
+    tenants = tenants if tenants else ['_test'] * len(index_names)
+    tenants = list(map(check_tenant, tenants))
 
     if not index_names:
         return {'code': 0, 'msg': f'index_names 不能为空'}
@@ -52,7 +53,7 @@ def index_search(_input: SearchInput, tenant: Optional[str] = Header('_test'), l
         return {'code': 0, 'msg': f'vectors 不能为空'}
 
     vectors = np.array(vectors).astype(np.float32)
-    _ret = o_faiss.search(vectors, tenant, index_names, partitions, nprobe, top_k, use_mv=use_mv, log_id=log_id)
+    _ret = o_faiss.search(vectors, tenants, index_names, partitions, nprobe, top_k, use_mv=use_mv, log_id=log_id)
     return {'code': 1, 'data': _ret}
 
 

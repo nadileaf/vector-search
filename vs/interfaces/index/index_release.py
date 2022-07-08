@@ -1,4 +1,4 @@
-from fastapi import Query, Header
+from fastapi import Query
 from typing import Optional, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
@@ -14,7 +14,7 @@ from vs.lib.utils import check_tenant
 def index_release(
         index_name: str = Query('', description='索引的名称; 若为 * , 则加载索引索引'),
         partition: Optional[str] = Query('', description='索引的分区'),
-        tenant: Optional[str] = Header('_test'),
+        tenant: Optional[str] = Query('_test', description='租户名称'),
         log_id: Union[int, str] = None,
 ):
     tenant = tenant if isinstance(tenant, str) else tenant.default
