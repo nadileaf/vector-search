@@ -47,7 +47,7 @@ spec:
     - metadata:
         name: vector-search-db
       spec:
-        storageClassName: gp2
+        storageClassName: efs-sc
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
