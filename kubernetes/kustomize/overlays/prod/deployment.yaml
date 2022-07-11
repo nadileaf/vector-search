@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.8-py38
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.8-py38-prod-data-index
           imagePullPolicy: Always
           env:
           - name: MY_DEV_ENV
@@ -32,7 +32,7 @@ spec:
               memory: 16Gi
 
           volumeMounts:
-            - name: vector-search-db
+            - name: vs-db
               mountPath: /data
 
           command:
@@ -45,9 +45,9 @@ spec:
         - name: harbor-pull-secret
   volumeClaimTemplates:
     - metadata:
-        name: vector-search-db
+        name: vs-db
       spec:
-        storageClassName: efs-sc
+        storageClassName: gp2
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
