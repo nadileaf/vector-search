@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.8-py38-prod-data-sqlite
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.8-py38
           imagePullPolicy: Always
           env:
           - name: MY_DEV_ENV
