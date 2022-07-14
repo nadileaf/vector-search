@@ -1,6 +1,7 @@
 import os
 import math
 import faiss
+import gevent
 import threading
 from queue import Queue
 import numpy as np
@@ -482,6 +483,16 @@ def get_md5_table(tenant: str, index_name: str, partition: str = '', id_type='IV
     return get_table_name(tenant, index_name, partition) + f'____md5_{id_type}'
 
 
+def get_uids_event(table_name: str, md5_ids: list, d_md5_2_id: dict, new_mids: list):
+    with _db(table_name) as d:
+        while md5_ids:
+            mid = md5_ids.pop()
+            if mid in d:
+                d_md5_2_id[mid] = d[mid]
+            else:
+                new_mids.append(mid)
+
+
 @logs.log
 def get_uids(tenant: str,
              index_name: str,
@@ -495,16 +506,33 @@ def get_uids(tenant: str,
     info = [''] * len(texts) if not info else info
     md5_ids = list(map(md5, zip(texts, info)))
 
-    ids = []
+    new_mids = []
+    d_md5_2_id = {}
+
+    pool = []
+    for i in range(min(20, len(md5_ids))):
+        g = gevent.spawn(get_uids_event, table_name, md5_ids, d_md5_2_id, new_mids)
+        pool.append(g)
+    gevent.joinall(pool)
+
     with _db(table_name) as d:
-        for mid in md5_ids:
-            if mid not in d:
-                _uid = uid() if id_queue is None else id_queue.get()
-                ids.append(_uid)
-                d[mid] = _uid
-            else:
-                ids.append(d[mid])
-    return ids
+        for mid in new_mids:
+            _uid = uid() if id_queue is None else id_queue.get()
+            d[mid] = _uid
+            d_md5_2_id[mid] = _uid
+
+    return [d_md5_2_id[mid] for mid in md5_ids]
+
+    # ids = []
+    # with _db(table_name) as d:
+    #     for mid in md5_ids:
+    #         if mid not in d:
+    #             _uid = uid() if id_queue is None else id_queue.get()
+    #             ids.append(_uid)
+    #             d[mid] = _uid
+    #         else:
+    #             ids.append(d[mid])
+    # return ids
 
 
 @logs.log
