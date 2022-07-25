@@ -10,7 +10,7 @@ from vs.lib.utils import check_tenant
 
 class IdsInput(BaseModel):
     index_name: str = Field(description='索引的名称')
-    ids: List[int] = Field(description='数据的 ids, 之前 add vectors 时返回的 ids')
+    ids: List[Union[int, str]] = Field(description='数据的 ids, 之前 add vectors 时返回的 ids')
     partition: Optional[str] = Field('', description='索引的分区')
 
 

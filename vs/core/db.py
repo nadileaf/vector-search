@@ -1,3 +1,4 @@
+import copy
 import os
 import math
 import faiss
@@ -138,6 +139,25 @@ class Faiss:
                 d[_id] = info[_i]
 
         return {'count': origin_len, 'exist_count': origin_len - len(filter_ids), 'ids': ids}
+
+    @logs.log
+    def list_info(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> list:
+        partition = partition if partition else self.DEFAULT
+        table_name = get_table_name(tenant, index_name, partition)
+        if not os.path.exists(os.path.join(SQLITE_DIR, f'{table_name}.sqlite')):
+            return []
+
+        with _db(get_table_name(tenant, index_name, partition)) as d:
+            # 限制返回内容，避免超内存
+            if len(d) > 10000:
+                _data = []
+                for i, k in enumerate(d.keys()):
+                    if i > 10000:
+                        break
+                    _data.append((k, d[k]))
+            else:
+                _data = list(d.items())
+        return _data
 
     @logs.log
     def save_one(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
@@ -506,12 +526,13 @@ def get_uids(tenant: str,
     info = [''] * len(texts) if not info else info
     md5_ids = list(map(md5, zip(texts, info)))
 
+    tmp_md5_ids = copy.deepcopy(md5_ids)
     new_mids = []
     d_md5_2_id = {}
 
     pool = []
-    for i in range(min(20, len(md5_ids))):
-        g = gevent.spawn(get_uids_event, table_name, md5_ids, d_md5_2_id, new_mids)
+    for i in range(min(20, len(tmp_md5_ids))):
+        g = gevent.spawn(get_uids_event, table_name, tmp_md5_ids, d_md5_2_id, new_mids)
         pool.append(g)
     gevent.joinall(pool)
 
