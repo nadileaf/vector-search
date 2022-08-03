@@ -17,8 +17,6 @@ spec:
       annotations:
         sidecar.istio.io/inject: "false"
     spec:
-      nodeSelector:
-        mesoor.com/component: ml-cpu
       containers:
         - name: vector-search
           image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.10-py38
