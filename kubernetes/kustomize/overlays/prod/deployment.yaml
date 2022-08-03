@@ -19,7 +19,7 @@ spec:
         mesoor.com/component: vector-search
       containers:
         - name: vector-search
-          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.8-py38
+          image: harbor.nadileaf.com/ml-model/vs:cpu-1.1.10-py38
           imagePullPolicy: Always
           env:
           - name: MY_DEV_ENV
@@ -27,11 +27,11 @@ spec:
 
           resources:
             requests:
-              cpu: "2"
-              memory: 16Gi
+              cpu: 3600m
+              memory: 29Gi
             limits:
-              cpu: "16"
-              memory: 16Gi
+              cpu: 3600m
+              memory: 29Gi
 
           volumeMounts:
             - name: vs-db
