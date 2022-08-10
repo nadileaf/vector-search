@@ -429,7 +429,9 @@ class Faiss:
 
         D, I = index.search(vectors, top_k)
 
-        d_table_name_2_ids[table_name] = list(set(list(map(int, I.reshape(-1)))))
+        if table_name not in d_table_name_2_ids:
+            d_table_name_2_ids[table_name] = []
+        d_table_name_2_ids[table_name] += list(set(list(map(int, I.reshape(-1)))))
 
         for _i, _result_ids in enumerate(I):
             similarities = D[_i]
