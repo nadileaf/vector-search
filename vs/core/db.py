@@ -48,6 +48,7 @@ class Faiss:
             partition: str = '',
             filter_exist=False,
             add_default=False,
+            mv_partition='',
             log_id=None) -> dict:
         """ 插入数据到 index，返回 插入成功的数量 insert_count """
 
@@ -104,7 +105,8 @@ class Faiss:
             index.add_with_ids(vectors, np.array(filter_ids))
 
         # 若有 partition，记录该 partition 的滑动平均向量
-        if partition and partition != self.DEFAULT:
+        if mv_partition or partition and partition != self.DEFAULT:
+            partition = mv_partition if mv_partition else partition
             if tenant not in self.mv_indices:
                 self.mv_indices[tenant] = {}
             if index_name not in self.mv_indices[tenant]:

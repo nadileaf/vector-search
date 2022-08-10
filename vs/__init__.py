@@ -42,6 +42,7 @@ def add(
         filter_exist: bool = False,
         add_default_partition: bool = False,
         ret_id: bool = True,
+        mv_partition: str = '',
         tenant: str = '_test',
         log_id: int = None,
 ):
@@ -50,6 +51,7 @@ def add(
         vectors=vectors,
         info=info,
         partition=partition,
+        mv_partition=mv_partition,
         texts=texts,
         filter_exist=filter_exist,
         add_default_partition=add_default_partition,
