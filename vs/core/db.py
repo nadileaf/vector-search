@@ -59,7 +59,7 @@ class Faiss:
         index_type = get_index_type(index)
 
         # 预处理 info
-        info = process_info(info, len(vectors), partition)
+        info = process_info(info, len(vectors), mv_partition if mv_partition else partition)
 
         if not filter_exist and index_type.startswith('Flat'):
             ids = list(range(index.ntotal, index.ntotal + origin_len))
