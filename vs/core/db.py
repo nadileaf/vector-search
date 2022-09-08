@@ -205,7 +205,8 @@ class Faiss:
     def load_one(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
         if not partition:
             index_dir = os.path.join(INDEX_DIR, tenant, index_name)
-            if not os.path.isdir(index_dir) or not os.listdir(index_dir):
+            if (not os.path.isdir(index_dir) or not os.listdir(index_dir)) and \
+                    (tenant not in self.indices or index_name not in self.indices[tenant]):
                 return 0
 
             if tenant not in self.indices:
@@ -236,7 +237,9 @@ class Faiss:
 
         else:
             index_path = os.path.join(INDEX_DIR, tenant, index_name, f'{partition}.index')
-            if not os.path.exists(index_path):
+            if not os.path.exists(index_path) and (
+                    tenant not in self.indices or index_name not in self.indices[tenant] or
+                    partition not in self.indices[tenant][index_name]):
                 return 0
 
             if tenant not in self.indices:
@@ -287,6 +290,7 @@ class Faiss:
                partitions: List[str] = None,
                nprobe=10,
                top_k=20,
+               each_top_k=20,
                use_mv=True,
                log_id=None) -> List[List[dict]]:
         if vectors is None or not vectors.any():
@@ -299,7 +303,7 @@ class Faiss:
         partitions = partitions if partitions else [''] * len(index_names)
         for i, index_name in enumerate(index_names):
             partition = partitions[i] if partitions[i] else self.DEFAULT
-            self._search_a_index(tenant, index_name, partition, vectors, nprobe, top_k,
+            self._search_a_index(tenant, index_name, partition, vectors, nprobe, each_top_k,
                                  avg_results, use_mv, d_table_name_2_ids, results, log_id=log_id)
 
         # 获取具体的结构化信息
