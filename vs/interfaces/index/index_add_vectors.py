@@ -15,6 +15,7 @@ class VectorInput(BaseModel):
                                                    '若不提供，则以 vector 本身进行去重，但耗时更久')
     info: List[Any] = Field([], description='结构化数据 或 文本数据 等; len(info) = 数据量')
     partition: Optional[str] = Field('', description='索引的分区')
+    mv_partition: Optional[str] = Field('', description='给 default partition 用 mv 用')
     filter_exist: Optional[bool] = Field(False, description='是否去重插入向量到索引')
     add_default_partition: Optional[bool] = Field(False, description='是否将当前分区的内容也添加到 默认分区')
     ret_id: Optional[bool] = Field(False, description='是否返回数据的id')
@@ -42,6 +43,7 @@ def index_add_vectors(_input: VectorInput, log_id: Union[int, str] = None):
     texts = _input.texts
     info = _input.info
     partition = _input.partition
+    mv_partition = _input.mv_partition
     filter_exist = _input.filter_exist
     add_default_partition = _input.add_default_partition
     ret_id = _input.ret_id
@@ -63,7 +65,7 @@ def index_add_vectors(_input: VectorInput, log_id: Union[int, str] = None):
 
     vectors = np.array(vectors).astype(np.float32)
     ret = o_faiss.add(tenant, index_name, vectors, texts, info, partition, filter_exist,
-                      add_default=add_default_partition, log_id=log_id)
+                      add_default=add_default_partition, mv_partition=mv_partition, log_id=log_id)
 
     # 根据用户输入参数，决定是否返回 ids，提高响应速度
     if not ret_id and 'ids' in ret:

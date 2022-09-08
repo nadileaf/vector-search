@@ -1,6 +1,8 @@
+import copy
 import os
 import math
 import faiss
+import gevent
 import threading
 from queue import Queue
 import numpy as np
@@ -46,6 +48,7 @@ class Faiss:
             partition: str = '',
             filter_exist=False,
             add_default=False,
+            mv_partition='',
             log_id=None) -> dict:
         """ 插入数据到 index，返回 插入成功的数量 insert_count """
 
@@ -56,7 +59,7 @@ class Faiss:
         index_type = get_index_type(index)
 
         # 预处理 info
-        info = process_info(info, len(vectors), partition)
+        info = process_info(info, len(vectors), mv_partition if mv_partition else partition)
 
         if not filter_exist and index_type.startswith('Flat'):
             ids = list(range(index.ntotal, index.ntotal + origin_len))
@@ -102,17 +105,18 @@ class Faiss:
             index.add_with_ids(vectors, np.array(filter_ids))
 
         # 若有 partition，记录该 partition 的滑动平均向量
-        if partition and partition != self.DEFAULT:
+        if mv_partition or partition and partition != self.DEFAULT:
+            tmp_partition = mv_partition if mv_partition else partition
             if tenant not in self.mv_indices:
                 self.mv_indices[tenant] = {}
             if index_name not in self.mv_indices[tenant]:
                 self.mv_indices[tenant][index_name] = {}
-            if partition not in self.mv_indices[tenant][index_name]:
-                self.mv_indices[tenant][index_name][partition] = None
-            mv_index = self.mv_indices[tenant][index_name][partition]
+            if tmp_partition not in self.mv_indices[tenant][index_name]:
+                self.mv_indices[tenant][index_name][tmp_partition] = None
+            mv_index = self.mv_indices[tenant][index_name][tmp_partition]
 
             if not mv_index:
-                self.mv_indices[tenant][index_name][partition] = {
+                self.mv_indices[tenant][index_name][tmp_partition] = {
                     'vector': np.mean(vectors, axis=0),
                     'count': len(vectors)
                 }
@@ -126,7 +130,7 @@ class Faiss:
                     count += 1
                     avg_embedding = avg_embedding * (1 - beta) + v * beta
 
-                self.mv_indices[tenant][index_name][partition] = {'vector': avg_embedding, 'count': count}
+                self.mv_indices[tenant][index_name][tmp_partition] = {'vector': avg_embedding, 'count': count}
 
         if add_default and partition and partition != self.DEFAULT:
             self.add(tenant, index_name, vectors, texts, info, self.DEFAULT, filter_exist, log_id=log_id)
@@ -137,6 +141,25 @@ class Faiss:
                 d[_id] = info[_i]
 
         return {'count': origin_len, 'exist_count': origin_len - len(filter_ids), 'ids': ids}
+
+    @logs.log
+    def list_info(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> list:
+        partition = partition if partition else self.DEFAULT
+        table_name = get_table_name(tenant, index_name, partition)
+        if not os.path.exists(os.path.join(SQLITE_DIR, f'{table_name}.sqlite')):
+            return []
+
+        with _db(get_table_name(tenant, index_name, partition)) as d:
+            # 限制返回内容，避免超内存
+            if len(d) > 10000:
+                _data = []
+                for i, k in enumerate(d.keys()):
+                    if i > 10000:
+                        break
+                    _data.append((k, d[k]))
+            else:
+                _data = list(d.items())
+        return _data
 
     @logs.log
     def save_one(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
@@ -182,7 +205,8 @@ class Faiss:
     def load_one(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
         if not partition:
             index_dir = os.path.join(INDEX_DIR, tenant, index_name)
-            if not os.path.isdir(index_dir) or not os.listdir(index_dir):
+            if (not os.path.isdir(index_dir) or not os.listdir(index_dir)) and \
+                    (tenant not in self.indices or index_name not in self.indices[tenant]):
                 return 0
 
             if tenant not in self.indices:
@@ -213,7 +237,9 @@ class Faiss:
 
         else:
             index_path = os.path.join(INDEX_DIR, tenant, index_name, f'{partition}.index')
-            if not os.path.exists(index_path):
+            if not os.path.exists(index_path) and (
+                    tenant not in self.indices or index_name not in self.indices[tenant] or
+                    partition not in self.indices[tenant][index_name]):
                 return 0
 
             if tenant not in self.indices:
@@ -264,6 +290,7 @@ class Faiss:
                partitions: List[str] = None,
                nprobe=10,
                top_k=20,
+               each_top_k=20,
                use_mv=True,
                log_id=None) -> List[List[dict]]:
         if vectors is None or not vectors.any():
@@ -277,7 +304,7 @@ class Faiss:
         for i, index_name in enumerate(index_names):
             tenant = tenants[i]
             partition = partitions[i] if partitions[i] else self.DEFAULT
-            self._search_a_index(tenant, index_name, partition, vectors, nprobe, top_k,
+            self._search_a_index(tenant, index_name, partition, vectors, nprobe, each_top_k,
                                  avg_results, use_mv, d_table_name_2_ids, results, log_id=log_id)
 
         # 获取具体的结构化信息
@@ -407,7 +434,9 @@ class Faiss:
 
         D, I = index.search(vectors, top_k)
 
-        d_table_name_2_ids[table_name] = list(set(list(map(int, I.reshape(-1)))))
+        if table_name not in d_table_name_2_ids:
+            d_table_name_2_ids[table_name] = []
+        d_table_name_2_ids[table_name] += list(set(list(map(int, I.reshape(-1)))))
 
         for _i, _result_ids in enumerate(I):
             similarities = D[_i]
@@ -483,6 +512,16 @@ def get_md5_table(tenant: str, index_name: str, partition: str = '', id_type='IV
     return get_table_name(tenant, index_name, partition) + f'____md5_{id_type}'
 
 
+def get_uids_event(table_name: str, md5_ids: list, d_md5_2_id: dict, new_mids: list):
+    with _db(table_name) as d:
+        while md5_ids:
+            mid = md5_ids.pop()
+            if mid in d:
+                d_md5_2_id[mid] = d[mid]
+            else:
+                new_mids.append(mid)
+
+
 @logs.log
 def get_uids(tenant: str,
              index_name: str,
@@ -496,16 +535,34 @@ def get_uids(tenant: str,
     info = [''] * len(texts) if not info else info
     md5_ids = list(map(md5, zip(texts, info)))
 
-    ids = []
+    tmp_md5_ids = copy.deepcopy(md5_ids)
+    new_mids = []
+    d_md5_2_id = {}
+
+    pool = []
+    for i in range(min(20, len(tmp_md5_ids))):
+        g = gevent.spawn(get_uids_event, table_name, tmp_md5_ids, d_md5_2_id, new_mids)
+        pool.append(g)
+    gevent.joinall(pool)
+
     with _db(table_name) as d:
-        for mid in md5_ids:
-            if mid not in d:
-                _uid = uid() if id_queue is None else id_queue.get()
-                ids.append(_uid)
-                d[mid] = _uid
-            else:
-                ids.append(d[mid])
-    return ids
+        for mid in new_mids:
+            _uid = uid() if id_queue is None else id_queue.get()
+            d[mid] = _uid
+            d_md5_2_id[mid] = _uid
+
+    return [d_md5_2_id[mid] for mid in md5_ids]
+
+    # ids = []
+    # with _db(table_name) as d:
+    #     for mid in md5_ids:
+    #         if mid not in d:
+    #             _uid = uid() if id_queue is None else id_queue.get()
+    #             ids.append(_uid)
+    #             d[mid] = _uid
+    #         else:
+    #             ids.append(d[mid])
+    # return ids
 
 
 @logs.log

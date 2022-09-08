@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 from pydantic import BaseModel, Field
+from fastapi import Header
 from typing import Optional, List, Any, Union
 from vs.interfaces.base import app, log
 from vs.interfaces.definitions.common import Response
@@ -16,6 +17,7 @@ class SearchInput(BaseModel):
     partitions: Optional[List[str]] = Field(None, description='索引的分区')
     nprobe: Optional[int] = Field(10, description='查找索引中最近的 nprobe 个中心点')
     top_k: Optional[int] = Field(20, description='返回 top_k 个结果')
+    each_top_k: Optional[int] = Field(20, description='多个 index 时，每个 index 返回 top_k 个结果')
     use_mv: Optional[bool] = Field(True, description='搜索时是否考虑滑动平均向量因素; 可用于过滤脏数据')
 
 
@@ -41,6 +43,7 @@ def index_search(_input: SearchInput, log_id: Union[int, str] = None):
     partitions = _input.partitions
     nprobe = _input.nprobe
     top_k = _input.top_k
+    each_top_k = _input.each_top_k
     use_mv = _input.use_mv
 
     tenants = tenants if tenants else ['_test'] * len(index_names)
@@ -53,7 +56,7 @@ def index_search(_input: SearchInput, log_id: Union[int, str] = None):
         return {'code': 0, 'msg': f'vectors 不能为空'}
 
     vectors = np.array(vectors).astype(np.float32)
-    _ret = o_faiss.search(vectors, tenants, index_names, partitions, nprobe, top_k, use_mv=use_mv, log_id=log_id)
+    _ret = o_faiss.search(vectors, tenants, index_names, partitions, nprobe, top_k, each_top_k, use_mv=use_mv, log_id=log_id)
     return {'code': 1, 'data': _ret}
 
 

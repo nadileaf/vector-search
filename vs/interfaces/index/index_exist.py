@@ -1,3 +1,5 @@
+import os
+from vs.config.path import INDEX_DIR
 from pydantic import Field
 from fastapi import Query
 from typing import Optional, Union
@@ -29,6 +31,11 @@ def index_exist(
     tenant = check_tenant(tenant)
 
     partition = partition if partition else o_faiss.DEFAULT
+
+    # check in disk
+    index_path = os.path.join(INDEX_DIR, tenant, index_name, f'{partition}.index')
+    if os.path.exists(index_path):
+        return {'code': 1, 'data': True}
 
     index = o_faiss.index(tenant, index_name, partition)
     return {'code': 1, 'data': index is not None}

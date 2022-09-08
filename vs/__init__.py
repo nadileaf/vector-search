@@ -19,6 +19,7 @@ from vs.interfaces.index.index_save import index_save
 from vs.interfaces.index.index_search import index_search, SearchInput
 from vs.interfaces.index.index_train import index_train, TrainVectorInput
 from vs.interfaces.index.index_is_train import index_is_train
+from vs.interfaces.index.index_info import index_info
 from vs.server import server_run
 
 sys.path.pop()
@@ -42,6 +43,7 @@ def add(
         filter_exist: bool = False,
         add_default_partition: bool = False,
         ret_id: bool = True,
+        mv_partition: str = '',
         tenant: str = '_test',
         log_id: int = None,
 ):
@@ -51,6 +53,7 @@ def add(
         vectors=vectors,
         info=info,
         partition=partition,
+        mv_partition=mv_partition,
         texts=texts,
         filter_exist=filter_exist,
         add_default_partition=add_default_partition,
@@ -148,6 +151,7 @@ def search(
         partitions: List[str] = None,
         nprobe: int = 10,
         top_k: int = 20,
+        each_top_k: int = 20,
         use_mv: bool = True,
         tenants: List[str] = [],
         log_id: int = None):
@@ -158,5 +162,10 @@ def search(
         partitions=partitions,
         nprobe=nprobe,
         top_k=top_k,
+        each_top_k=each_top_k,
         use_mv=use_mv,
     ), log_id=log_id)
+
+
+def info(index_name: str, partition: str = '', tenant: str = '_test', log_id: int = None):
+    return index_info(index_name, partition, tenant, log_id=log_id)
