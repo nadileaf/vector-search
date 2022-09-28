@@ -265,11 +265,12 @@ class Faiss:
             self.load_one(tenant, index_name, log_id=log_id)
 
     @logs.log
-    def release(self, tenant: str, index_name: str, partition: str = '', log_id=None) -> int:
+    def release(self, tenant: str, index_name: str, partition: str = '', save=True, log_id=None) -> int:
         # release index 前，先保存索引
-        ret = self.save_one(tenant, index_name, partition, log_id=log_id)
-        if not ret:
-            return 0
+        if save:
+            ret = self.save_one(tenant, index_name, partition, log_id=log_id)
+            if not ret:
+                return 0
 
         if not partition:
             if tenant in self.indices and index_name in self.indices[tenant]:
@@ -492,8 +493,10 @@ def get_nlist(count: int):
         return min(int(math.sqrt(count) * 2), 2048)
 
 
-def get_index(count: int, dim: int):
-    nlist = get_nlist(count)
+def get_index(count: int, dim: int, nlist=None):
+    if not nlist:
+        nlist = get_nlist(count)
+
     if count <= 1024:
         return faiss.IndexFlatIP(dim)
     elif count <= 20000:

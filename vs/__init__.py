@@ -6,7 +6,7 @@ _cur_dir = os.path.split(os.path.abspath(__file__))[0]
 sys.path.append(_cur_dir)
 
 from vs.core.db import o_faiss
-from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput, Header
+from vs.interfaces.index.index_add_vectors import index_add_vectors, VectorInput
 from vs.interfaces.index.index_create import index_create
 from vs.interfaces.index.index_delete_with_ids import index_delete_with_ids, IdsInput
 from vs.interfaces.index.index_delete_with_info import index_delete_with_info, InfoInput
@@ -67,9 +67,10 @@ def create(
         partition: str = '',
         count: int = 1000,
         tenant: str = '_test',
+        n_list: int = None,
         log_id: int = None,
 ):
-    return index_create(index_name, dim_size, partition, count, tenant, log_id=log_id)
+    return index_create(index_name, dim_size, partition, count, tenant, n_list, log_id=log_id)
 
 
 def delete_with_ids(index_name: str,
@@ -137,8 +138,8 @@ def load(index_name: str, partition: str = '', tenant: str = '_test', log_id: in
     return index_load(index_name, partition, tenant, log_id=log_id)
 
 
-def release(index_name: str, partition: str = '', tenant: str = '_test', log_id: int = None):
-    return index_release(index_name, partition, tenant, log_id=log_id)
+def release(index_name: str, partition: str = '', tenant: str = '_test', _save: bool = True, log_id: int = None):
+    return index_release(index_name, partition, tenant, save=_save, log_id=log_id)
 
 
 def save(index_name: str, partition: str = '', tenant: str = '_test', log_id: int = None):

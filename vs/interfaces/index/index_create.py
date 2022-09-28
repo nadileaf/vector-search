@@ -20,6 +20,7 @@ def index_create(
         partition: Optional[str] = Query('', description='索引的分区'),
         count: Optional[int] = Query(10000, description='预估的数据量'),
         tenant: Optional[str] = Query('_test', description='租户名称'),
+        n_list: Optional[int] = Query(None, description='cluster size'),
         log_id: Union[int, str] = None,
 ):
     index_name = index_name if isinstance(index_name, str) else index_name.default
@@ -27,6 +28,7 @@ def index_create(
     partition = partition if isinstance(partition, str) else partition.default
     count = int(count) if isinstance(count, int) else count.default
     tenant = tenant if isinstance(tenant, str) else tenant.default
+    n_list = n_list if isinstance(n_list, int) or n_list is None else n_list.default
 
     tenant = check_tenant(tenant)
 
@@ -47,7 +49,7 @@ def index_create(
     if partition in o_faiss.indices[tenant][index_name]:
         return {'code': 1, 'msg': f'index_name "{index_name}({partition})" (tenant: {tenant}) 已存在，请先删除索引'}
 
-    o_faiss.indices[tenant][index_name][partition] = get_index(count, dim_size)
+    o_faiss.indices[tenant][index_name][partition] = get_index(count, dim_size, n_list)
 
     return {'code': 1}
 

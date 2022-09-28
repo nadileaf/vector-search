@@ -15,11 +15,13 @@ def index_release(
         index_name: str = Query('', description='索引的名称; 若为 * , 则加载索引索引'),
         partition: Optional[str] = Query('', description='索引的分区'),
         tenant: Optional[str] = Query('_test', description='租户名称'),
+        save: Optional[bool] = Query(True, description='释放之前是否先保存'),
         log_id: Union[int, str] = None,
 ):
     tenant = tenant if isinstance(tenant, str) else tenant.default
     index_name = index_name if isinstance(index_name, str) else index_name.default
     partition = partition if isinstance(partition, str) else partition.default
+    save = save if isinstance(save, bool) else save.default
 
     tenant = check_tenant(tenant)
 
@@ -29,9 +31,9 @@ def index_release(
     _ret = 1
     if index_name == '*':
         for _index_name in o_faiss.indices.keys():
-            o_faiss.release(tenant, _index_name, partition, log_id=log_id)
+            o_faiss.release(tenant, _index_name, partition, save=save, log_id=log_id)
     else:
-        _ret = o_faiss.release(tenant, index_name, partition, log_id=log_id)
+        _ret = o_faiss.release(tenant, index_name, partition, save=save, log_id=log_id)
 
     msg = 'Successfully' if _ret else 'Fail'
     msg = f'{msg} releasing index "{index_name}({partition})" (tenant: "{tenant}")'

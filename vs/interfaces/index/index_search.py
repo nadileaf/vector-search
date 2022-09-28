@@ -56,7 +56,8 @@ def index_search(_input: SearchInput, log_id: Union[int, str] = None):
         return {'code': 0, 'msg': f'vectors 不能为空'}
 
     vectors = np.array(vectors).astype(np.float32)
-    _ret = o_faiss.search(vectors, tenants, index_names, partitions, nprobe, top_k, each_top_k, use_mv=use_mv, log_id=log_id)
+    _ret = o_faiss.search(vectors, tenants, index_names, partitions, nprobe, top_k, each_top_k,
+                          use_mv=use_mv, log_id=log_id)
     return {'code': 1, 'data': _ret}
 
 
